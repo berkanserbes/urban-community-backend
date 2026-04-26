@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="UrbanCommunity.Api/UrbanCommunity.Api.csproj" />
+  <Project Path="UrbanCommunity.Application/UrbanCommunity.Application.csproj" />
+  <Project Path="UrbanCommunity.Domain/UrbanCommunity.Domain.csproj" />
+  <Project Path="UrbanCommunity.Infrastructure/UrbanCommunity.Infrastructure.csproj" />
+</Solution>
