@@ -40,8 +40,17 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.Bio)
             .HasMaxLength(300);
 
+        builder.Property(u => u.IsActive)
+            .HasDefaultValue(true);
+
+        builder.Property(u => u.CreatedAt)
+            .IsRequired();
+
+        builder.Property(u => u.UpdatedAt);
+
         builder.HasIndex(u => u.Role);
         builder.HasIndex(u => u.IsActive);
         builder.HasIndex(u => u.DepartmentId);
+        builder.HasIndex(u => u.NeighborhoodId);
     }
 }
