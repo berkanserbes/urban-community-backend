@@ -15,8 +15,25 @@ public enum PostType
     LostAndFound = 3
 }
 
+public enum CommunityPostStatus
+{
+    Active = 1,
+    Reserved = 2,
+    Resolved = 3,
+    Expired = 4,
+    Archived = 5
+}
+
 public enum MediaType
 {
     Image = 1,
     Video = 2
+}
+
+public enum NotificationRelatedEntityType
+{
+    Report = 1,
+    Suggestion = 2,
+    CommunityPost = 3,
+    Announcement = 4
 }
