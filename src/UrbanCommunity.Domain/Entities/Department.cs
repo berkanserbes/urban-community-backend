@@ -20,6 +20,5 @@ public class Department : BaseEntity
         Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
         ContactEmail = string.IsNullOrWhiteSpace(contactEmail) ? null : contactEmail.Trim();
         ContactPhone = string.IsNullOrWhiteSpace(contactPhone) ? null : contactPhone.Trim();
-        UpdatedAt = DateTime.UtcNow;
     }
 }

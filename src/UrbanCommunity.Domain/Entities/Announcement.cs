@@ -31,18 +31,15 @@ public class Announcement : BaseEntity
     {
         IsActive = true;
         ExpiresAt = expiresAt;
-        UpdatedAt = DateTime.UtcNow;
     }
 
     public void Deactivate()
     {
         IsActive = false;
-        UpdatedAt = DateTime.UtcNow;
     }
 
     public void SetExpiration(DateTime? expiresAt)
     {
         ExpiresAt = expiresAt;
-        UpdatedAt = DateTime.UtcNow;
     }
 }

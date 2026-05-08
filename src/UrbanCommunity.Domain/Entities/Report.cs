@@ -98,7 +98,6 @@ public class Report : BaseEntity
 
         Status = newStatus;
         ResolvedAt = newStatus == ReportStatus.Resolved ? DateTime.UtcNow : null;
-        UpdatedAt = DateTime.UtcNow;
 
         History.Add(new ReportHistory
         {
@@ -113,18 +112,15 @@ public class Report : BaseEntity
     public void AssignDepartment(Guid? departmentId)
     {
         AssignedDepartmentId = departmentId;
-        UpdatedAt = DateTime.UtcNow;
     }
 
     public void UpdatePriority(ReportPriority priority)
     {
         Priority = priority;
-        UpdatedAt = DateTime.UtcNow;
     }
 
     public void SetSimilarityHash(string? similarityHash)
     {
         SimilarityHash = string.IsNullOrWhiteSpace(similarityHash) ? null : similarityHash.Trim();
-        UpdatedAt = DateTime.UtcNow;
     }
 }

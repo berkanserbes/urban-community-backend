@@ -69,6 +69,5 @@ public class CommunityPost : BaseEntity
         }
 
         Status = newStatus;
-        UpdatedAt = DateTime.UtcNow;
     }
 }

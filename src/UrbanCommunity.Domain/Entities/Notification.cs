@@ -27,7 +27,6 @@ public class Notification : BaseEntity
         }
 
         IsRead = true;
-        UpdatedAt = DateTime.UtcNow;
     }
 
     public void MarkAsUnread()
@@ -38,6 +37,5 @@ public class Notification : BaseEntity
         }
 
         IsRead = false;
-        UpdatedAt = DateTime.UtcNow;
     }
 }
