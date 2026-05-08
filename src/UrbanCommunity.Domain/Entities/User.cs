@@ -39,7 +39,9 @@ public class User : IdentityUser<Guid>
     public ICollection<UserRefreshToken> RefreshTokens { get; set; } = new List<UserRefreshToken>();
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public DateTime? UpdatedAt { get; set; }
+    public DateTime? UpdatedAt { get; private set; }
+
+    public void SetUpdatedAt(DateTime now) => UpdatedAt = now;
     
     public bool IsActive { get; set; } = true;
 
@@ -52,8 +54,6 @@ public class User : IdentityUser<Guid>
             DepartmentId = null;
             Department = null;
         }
-
-        UpdatedAt = DateTime.UtcNow;
     }
 
     public void AssignDepartment(Guid? departmentId)
@@ -69,8 +69,6 @@ public class User : IdentityUser<Guid>
         {
             Department = null;
         }
-
-        UpdatedAt = DateTime.UtcNow;
     }
 
     public void UpdateProfile(string firstName, string lastName, string? bio, string? profileImageUrl)
@@ -79,18 +77,15 @@ public class User : IdentityUser<Guid>
         LastName = lastName.Trim();
         Bio = string.IsNullOrWhiteSpace(bio) ? null : bio.Trim();
         ProfileImageUrl = string.IsNullOrWhiteSpace(profileImageUrl) ? null : profileImageUrl.Trim();
-        UpdatedAt = DateTime.UtcNow;
     }
 
     public void Deactivate()
     {
         IsActive = false;
-        UpdatedAt = DateTime.UtcNow;
     }
 
     public void Activate()
     {
         IsActive = true;
-        UpdatedAt = DateTime.UtcNow;
     }
 }

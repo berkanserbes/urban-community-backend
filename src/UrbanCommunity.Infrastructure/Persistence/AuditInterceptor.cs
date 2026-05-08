@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using UrbanCommunity.Domain.Common;
+using UrbanCommunity.Domain.Entities;
 
 namespace UrbanCommunity.Infrastructure.Persistence;
 
@@ -43,6 +44,13 @@ public sealed class AuditInterceptor : SaveChangesInterceptor
                     entry.Entity.SetUpdatedAt(now);
                     break;
             }
+        }
+
+        // User inherits from IdentityUser, not BaseEntity — handled separately
+        foreach (var entry in context.ChangeTracker.Entries<User>())
+        {
+            if (entry.State == EntityState.Modified)
+                entry.Entity.SetUpdatedAt(now);
         }
     }
 }
