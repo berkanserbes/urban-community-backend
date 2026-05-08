@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.AspNetCore.Identity;
+using UrbanCommunity.Domain.Common;
 using UrbanCommunity.Domain.Enums;
 
 namespace UrbanCommunity.Domain.Entities;
@@ -59,7 +60,7 @@ public class User : IdentityUser<Guid>
     {
         if (departmentId.HasValue && Role != UserRole.Official)
         {
-            throw new InvalidOperationException("Only users with the Official role can be assigned to a department.");
+            throw new DomainException("Departman ataması yalnızca Official rolündeki kullanıcılara yapılabilir.");
         }
 
         DepartmentId = departmentId;

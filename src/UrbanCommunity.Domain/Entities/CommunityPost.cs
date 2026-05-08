@@ -65,7 +65,7 @@ public class CommunityPost : BaseEntity
 
         if (!CanTransitionTo(newStatus))
         {
-            throw new InvalidOperationException($"Invalid community post status transition: {Status} -> {newStatus}");
+            throw new DomainException($"Geçersiz durum geçişi: {Status} -> {newStatus}");
         }
 
         Status = newStatus;

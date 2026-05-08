@@ -91,7 +91,7 @@ public class Report : BaseEntity
 
         if (!CanTransitionTo(newStatus))
         {
-            throw new InvalidOperationException($"Invalid report status transition: {Status} -> {newStatus}");
+            throw new DomainException($"Geçersiz durum geçişi: {Status} -> {newStatus}");
         }
 
         var previousStatus = Status;
