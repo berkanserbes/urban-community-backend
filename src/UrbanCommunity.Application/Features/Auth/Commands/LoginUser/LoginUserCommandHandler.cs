@@ -38,6 +38,9 @@ public sealed class LoginUserCommandHandler(
         }
 
         var accessToken = tokenService.GenerateToken(user);
+        var accessTokenExpiresAt = DateTime.UtcNow.AddMinutes(
+            int.TryParse(Environment.GetEnvironmentVariable("JWT_ACCESS_TOKEN_EXPIRY_MINUTES"), out var minutes)
+                ? minutes : 10);
         var refreshTokenValue = tokenService.GenerateRefreshToken();
 
         var oldTokens = await context.UserRefreshTokens
@@ -67,6 +70,7 @@ public sealed class LoginUserCommandHandler(
 
         return Result<LoginUserCommandResponse>.Success(new LoginUserCommandResponse(
             accessToken,
+            accessTokenExpiresAt,
             refreshTokenValue,
             refreshToken.ExpiresAt,
             user.Id,
