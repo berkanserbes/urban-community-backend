@@ -53,6 +53,7 @@ public sealed class LoginUserCommandHandler(
         {
             old.RevokedAt = DateTime.UtcNow;
             old.RevokedByIp = clientIp;
+            old.RevokedReason = "Previous token revoked due to new login";
         }
 
         var refreshToken = new UserRefreshToken

@@ -61,6 +61,7 @@ public sealed class RefreshTokenCommandHandler(
 
         storedToken.RevokedAt = DateTime.UtcNow;
         storedToken.RevokedByIp = clientIp;
+        storedToken.RevokedReason = "Token replaced by refresh";
         storedToken.ReplacedByToken = newRefreshTokenValue;
 
         var newRefreshToken = new UserRefreshToken

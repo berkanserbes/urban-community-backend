@@ -15,6 +15,7 @@ public class UserRefreshToken : BaseEntity
 
     public DateTime? RevokedAt { get; set; }
     public string? RevokedByIp { get; set; }
+    public string? RevokedReason { get; set; }
     public string? ReplacedByToken { get; set; }
 
     public bool IsActive => !RevokedAt.HasValue && !IsExpired;
