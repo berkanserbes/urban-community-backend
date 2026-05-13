@@ -15,6 +15,6 @@ public sealed class CreateSuggestionCommandValidator : AbstractValidator<CreateS
             .MaximumLength(2000).WithMessage("İçerik en fazla 2000 karakter olabilir.");
 
         RuleFor(x => x.UserId)
-            .NotEmpty().WithMessage("Kullanıcı kimliği gereklidir.");
+            .NotEmpty().WithMessage("Kullanıcı kimliği belirlenemedi. Lütfen tekrar giriş yapın.");
     }
 }

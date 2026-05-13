@@ -6,4 +6,4 @@ namespace UrbanCommunity.Application.Features.Suggestions.Commands.CreateSuggest
 public sealed record CreateSuggestionCommand(
     string Title,
     string Content,
-    Guid UserId) : IRequest<Result<CreateSuggestionCommandResponse>>;
+    Guid UserId = default) : IRequest<Result<CreateSuggestionCommandResponse>>;
