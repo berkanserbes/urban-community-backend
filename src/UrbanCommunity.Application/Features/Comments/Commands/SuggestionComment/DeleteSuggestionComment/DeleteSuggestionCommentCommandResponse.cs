@@ -1,0 +1,3 @@
+namespace UrbanCommunity.Application.Features.Comments.Commands.SuggestionComment.DeleteSuggestionComment;
+
+public sealed record DeleteSuggestionCommentCommandResponse(string Message);
