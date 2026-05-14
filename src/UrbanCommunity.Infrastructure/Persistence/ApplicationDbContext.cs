@@ -14,6 +14,8 @@ public class ApplicationDbContext : IdentityDbContext<User, IdentityRole<Guid>, 
     }
 
     public override DbSet<User> Users => base.Users;
+    public DbSet<Province> Provinces => Set<Province>();
+    public DbSet<District> Districts => Set<District>();
     public DbSet<Neighborhood> Neighborhoods => Set<Neighborhood>();
     public DbSet<Report> Reports => Set<Report>();
     public DbSet<ReportCategory> ReportCategories => Set<ReportCategory>();

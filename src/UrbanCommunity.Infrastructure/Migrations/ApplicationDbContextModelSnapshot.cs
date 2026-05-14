@@ -320,6 +320,36 @@ namespace UrbanCommunity.Infrastructure.Migrations
                     b.ToTable("Departments");
                 });
 
+            modelBuilder.Entity("UrbanCommunity.Domain.Entities.District", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("ProvinceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProvinceId");
+
+                    b.ToTable("Districts");
+                });
+
             modelBuilder.Entity("UrbanCommunity.Domain.Entities.Neighborhood", b =>
                 {
                     b.Property<Guid>("Id")
@@ -339,6 +369,9 @@ namespace UrbanCommunity.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<Guid?>("DistrictId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -351,6 +384,8 @@ namespace UrbanCommunity.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("DistrictId");
 
                     b.HasIndex("City", "District", "Name")
                         .IsUnique();
@@ -400,6 +435,31 @@ namespace UrbanCommunity.Infrastructure.Migrations
                         {
                             t.HasCheckConstraint("CK_Notifications_RelatedEntity_Consistency", "(\"RelatedEntityId\" IS NULL AND \"RelatedEntityType\" IS NULL) OR (\"RelatedEntityId\" IS NOT NULL AND \"RelatedEntityType\" IS NOT NULL)");
                         });
+                });
+
+            modelBuilder.Entity("UrbanCommunity.Domain.Entities.Province", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Provinces");
                 });
 
             modelBuilder.Entity("UrbanCommunity.Domain.Entities.Report", b =>
@@ -1008,6 +1068,26 @@ namespace UrbanCommunity.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("UrbanCommunity.Domain.Entities.District", b =>
+                {
+                    b.HasOne("UrbanCommunity.Domain.Entities.Province", "Province")
+                        .WithMany("Districts")
+                        .HasForeignKey("ProvinceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Province");
+                });
+
+            modelBuilder.Entity("UrbanCommunity.Domain.Entities.Neighborhood", b =>
+                {
+                    b.HasOne("UrbanCommunity.Domain.Entities.District", "DistrictNavigation")
+                        .WithMany("Neighborhoods")
+                        .HasForeignKey("DistrictId");
+
+                    b.Navigation("DistrictNavigation");
+                });
+
             modelBuilder.Entity("UrbanCommunity.Domain.Entities.Notification", b =>
                 {
                     b.HasOne("UrbanCommunity.Domain.Entities.User", "User")
@@ -1190,6 +1270,11 @@ namespace UrbanCommunity.Infrastructure.Migrations
                     b.Navigation("Officials");
                 });
 
+            modelBuilder.Entity("UrbanCommunity.Domain.Entities.District", b =>
+                {
+                    b.Navigation("Neighborhoods");
+                });
+
             modelBuilder.Entity("UrbanCommunity.Domain.Entities.Neighborhood", b =>
                 {
                     b.Navigation("Announcements");
@@ -1199,6 +1284,11 @@ namespace UrbanCommunity.Infrastructure.Migrations
                     b.Navigation("Reports");
 
                     b.Navigation("Users");
+                });
+
+            modelBuilder.Entity("UrbanCommunity.Domain.Entities.Province", b =>
+                {
+                    b.Navigation("Districts");
                 });
 
             modelBuilder.Entity("UrbanCommunity.Domain.Entities.Report", b =>
