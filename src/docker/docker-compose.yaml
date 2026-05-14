@@ -1,0 +1,95 @@
+services:
+  urban-community-db:
+    image: postgis/postgis:latest
+    container_name: urban-community-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - urban-network
+    restart: always
+
+  urban-community-pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: urban-community-pgadmin
+    depends_on:
+      urban-community-db:
+        condition: service_healthy
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - urban-network
+    restart: always
+
+  urban-community-mq:
+    image: rabbitmq:3-management-alpine
+    container_name: urban-community-mq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBIT_MQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBIT_MQ_PASS}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - urban-network
+    restart: always
+
+  urban-community-api:
+    build:
+      context: ../../../
+      dockerfile: backend/src/docker/Dockerfile
+    container_name: urban-community-api
+    depends_on:
+      urban-community-db:
+        condition: service_healthy
+      urban-community-mq:
+        condition: service_started
+    environment:
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
+      - ASPNETCORE_URLS=http://+:80
+      - DB_CONNECTION_STRING=Host=urban-community-db;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_ISSUER=${JWT_ISSUER}
+      - JWT_AUDIENCE=${JWT_AUDIENCE}
+      - JWT_ACCESS_TOKEN_EXPIRY_MINUTES=${JWT_ACCESS_TOKEN_EXPIRY_MINUTES}
+      - JWT_REFRESH_TOKEN_EXPIRY_DAYS=${JWT_REFRESH_TOKEN_EXPIRY_DAYS}
+      - RABBIT_MQ_HOST=urban-community-mq
+      - RABBIT_MQ_USER=${RABBIT_MQ_USER}
+      - RABBIT_MQ_PASS=${RABBIT_MQ_PASS}
+      - FILE_STORAGE_PROVIDER=${FILE_STORAGE_PROVIDER}
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
+    ports:
+      - "${API_PORT:-5000}:80"
+    volumes:
+      - urban-uploads:/app/wwwroot/uploads
+      - urban-temp:/app/temp/uploads
+    networks:
+      - urban-network
+    restart: on-failure
+
+networks:
+  urban-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  pgadmin_data:
+  urban-uploads:
+  urban-temp:
