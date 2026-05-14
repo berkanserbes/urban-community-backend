@@ -71,12 +71,11 @@ public class User : IdentityUser<Guid>
         }
     }
 
-    public void UpdateProfile(string firstName, string lastName, string? bio, string? profileImageUrl)
+    public void UpdateProfile(string firstName, string lastName, string? bio)
     {
         FirstName = firstName.Trim();
         LastName = lastName.Trim();
         Bio = string.IsNullOrWhiteSpace(bio) ? null : bio.Trim();
-        ProfileImageUrl = string.IsNullOrWhiteSpace(profileImageUrl) ? null : profileImageUrl.Trim();
     }
 
     public void SetProfileImage(string? imageUrl)
