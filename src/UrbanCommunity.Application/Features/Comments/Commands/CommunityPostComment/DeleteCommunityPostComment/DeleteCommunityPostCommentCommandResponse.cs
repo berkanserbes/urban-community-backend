@@ -1,0 +1,3 @@
+namespace UrbanCommunity.Application.Features.Comments.Commands.CommunityPostComment.DeleteCommunityPostComment;
+
+public sealed record DeleteCommunityPostCommentCommandResponse(string Message);
