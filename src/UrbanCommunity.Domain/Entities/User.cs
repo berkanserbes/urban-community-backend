@@ -79,6 +79,11 @@ public class User : IdentityUser<Guid>
         ProfileImageUrl = string.IsNullOrWhiteSpace(profileImageUrl) ? null : profileImageUrl.Trim();
     }
 
+    public void SetProfileImage(string? imageUrl)
+    {
+        ProfileImageUrl = string.IsNullOrWhiteSpace(imageUrl) ? null : imageUrl.Trim();
+    }
+
     public void Deactivate()
     {
         IsActive = false;
