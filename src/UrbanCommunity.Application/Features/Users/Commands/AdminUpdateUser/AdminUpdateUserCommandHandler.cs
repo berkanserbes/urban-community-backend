@@ -21,7 +21,7 @@ public sealed class AdminUpdateUserCommandHandler(UserManager<User> userManager)
         }
 
         user.UpdateProfile(request.FirstName, request.LastName, request.Bio);
-        user.NeighborhoodId = request.NeighborhoodId;
+        user.AssignNeighborhood(request.NeighborhoodId);
 
         if (request.PhoneNumber != user.PhoneNumber)
         {

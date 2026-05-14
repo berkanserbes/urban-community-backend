@@ -83,6 +83,11 @@ public class User : IdentityUser<Guid>
         ProfileImageUrl = string.IsNullOrWhiteSpace(imageUrl) ? null : imageUrl.Trim();
     }
 
+    public void AssignNeighborhood(Guid? neighborhoodId)
+    {
+        NeighborhoodId = neighborhoodId;
+    }
+
     public void Deactivate()
     {
         IsActive = false;
