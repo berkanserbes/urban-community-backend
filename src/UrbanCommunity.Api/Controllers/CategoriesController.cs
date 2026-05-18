@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using UrbanCommunity.Application.Features.Categories.Commands.CreateCategory;
+using UrbanCommunity.Application.Features.Categories.Commands.DeleteAllCategories;
 using UrbanCommunity.Application.Features.Categories.Commands.DeleteCategory;
 using UrbanCommunity.Application.Features.Categories.Commands.UpdateCategory;
 using UrbanCommunity.Application.Features.Categories.Queries.GetCategories;
@@ -72,6 +73,14 @@ public class CategoriesController : ControllerBase
     public async Task<IActionResult> Delete(Guid id)
     {
         var result = await _mediator.Send(new DeleteCategoryCommand(id));
+        return Ok(result);
+    }
+
+    [HttpDelete]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> DeleteAll()
+    {
+        var result = await _mediator.Send(new DeleteAllCategoriesCommand());
         return Ok(result);
     }
 }
