@@ -21,7 +21,7 @@ public class NeighborhoodsController(IMediator mediator) : ControllerBase
     /// <summary>
     /// Returns all neighborhoods belonging to the specified district, ordered alphabetically.
     /// </summary>
-    [HttpGet("by-district/{districtId:guid}")]
+    [HttpGet("/api/districts/{districtId:guid}/neighborhoods")]
     [AllowAnonymous]
     public async Task<IActionResult> GetByDistrict(Guid districtId, CancellationToken cancellationToken)
     {
