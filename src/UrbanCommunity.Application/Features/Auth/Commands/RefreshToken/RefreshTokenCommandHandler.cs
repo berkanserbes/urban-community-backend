@@ -37,7 +37,7 @@ public sealed class RefreshTokenCommandHandler(
         }
 
         var storedToken = await context.UserRefreshTokens
-            .FirstOrDefaultAsync(t => t.Token == request.RefreshToken && t.UserId == userId, cancellationToken);
+            .FirstOrDefaultAsync(t => t.Token == tokenService.HashToken(request.RefreshToken) && t.UserId == userId, cancellationToken);
 
         if (storedToken is null || !storedToken.IsActive)
         {
@@ -62,12 +62,12 @@ public sealed class RefreshTokenCommandHandler(
         storedToken.RevokedAt = DateTime.UtcNow;
         storedToken.RevokedByIp = clientIp;
         storedToken.RevokedReason = "Token replaced by refresh";
-        storedToken.ReplacedByToken = newRefreshTokenValue;
+        storedToken.ReplacedByToken = tokenService.HashToken(newRefreshTokenValue);
 
         var newRefreshToken = new UserRefreshToken
         {
             UserId = user.Id,
-            Token = newRefreshTokenValue,
+            Token = tokenService.HashToken(newRefreshTokenValue),
             ExpiresAt = DateTime.UtcNow.AddDays(
                 int.TryParse(Environment.GetEnvironmentVariable("JWT_REFRESH_TOKEN_EXPIRY_DAYS"), out var days)
                     ? days : 14),

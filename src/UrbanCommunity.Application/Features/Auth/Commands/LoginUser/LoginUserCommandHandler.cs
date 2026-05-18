@@ -59,7 +59,7 @@ public sealed class LoginUserCommandHandler(
         var refreshToken = new UserRefreshToken
         {
             UserId = user.Id,
-            Token = refreshTokenValue,
+            Token = tokenService.HashToken(refreshTokenValue),
             ExpiresAt = DateTime.UtcNow.AddDays(
                 int.TryParse(Environment.GetEnvironmentVariable("JWT_REFRESH_TOKEN_EXPIRY_DAYS"), out var days)
                     ? days : 14),
