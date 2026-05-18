@@ -8,6 +8,9 @@ public class Neighborhood : BaseEntity
     public string Name { get; set; } = string.Empty;
     public string District { get; set; } = string.Empty;
     public string City { get; set; } = string.Empty;
+    
+    public Guid? DistrictId { get; set; }
+    public District? DistrictNavigation { get; set; }
 
     // Koordinat veya Sınır verisi (PostGIS Geo-Spatial alan)
     public Polygon? PolygonData { get; set; }
