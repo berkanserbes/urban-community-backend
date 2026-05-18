@@ -76,6 +76,12 @@ public class TokenService : ITokenService
         return Convert.ToHexString(randomNumber);
     }
 
+    public string HashToken(string token)
+    {
+        var bytes = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(token));
+        return Convert.ToHexString(bytes);
+    }
+
     public ClaimsPrincipal GetPrincipalFromExpiredToken(string token)
     {
         var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET") 
