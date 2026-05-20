@@ -9,4 +9,5 @@ public sealed record LoginUserCommandResponse(
     string Email,
     string FirstName,
     string LastName,
-    string Role);
+    string Role,
+    Guid? NeighborhoodId);

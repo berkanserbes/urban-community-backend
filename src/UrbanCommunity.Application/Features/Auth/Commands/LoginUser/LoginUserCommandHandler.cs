@@ -78,6 +78,7 @@ public sealed class LoginUserCommandHandler(
             user.Email!,
             user.FirstName,
             user.LastName,
-            user.Role.ToString()));
+            user.Role.ToString(),
+            user.NeighborhoodId));
     }
 }
