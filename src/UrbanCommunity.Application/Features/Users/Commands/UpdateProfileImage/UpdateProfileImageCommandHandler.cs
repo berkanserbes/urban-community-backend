@@ -30,6 +30,11 @@ public sealed class UpdateProfileImageCommandHandler(
 
         var imageUrl = await fileService.UploadFileAsync(request.Image, "profile-images", cancellationToken);
 
+        if (string.IsNullOrWhiteSpace(imageUrl))
+        {
+            return Result<UpdateProfileImageCommandResponse>.Failure(["Fotoğraf yüklenemedi. Lütfen tekrar deneyin."]);
+        }
+
         user.SetProfileImage(imageUrl);
 
         await userManager.UpdateAsync(user);
