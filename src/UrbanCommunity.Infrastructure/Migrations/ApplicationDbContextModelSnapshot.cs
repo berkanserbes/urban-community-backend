@@ -168,6 +168,9 @@ namespace UrbanCommunity.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid?>("DistrictId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime?>("ExpiresAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -178,6 +181,12 @@ namespace UrbanCommunity.Infrastructure.Migrations
 
                     b.Property<Guid?>("NeighborhoodId")
                         .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ProvinceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Scope")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -192,7 +201,11 @@ namespace UrbanCommunity.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("DistrictId");
+
                     b.HasIndex("ExpiresAt");
+
+                    b.HasIndex("ProvinceId");
 
                     b.HasIndex("UserId");
 
@@ -1006,10 +1019,18 @@ namespace UrbanCommunity.Infrastructure.Migrations
 
             modelBuilder.Entity("UrbanCommunity.Domain.Entities.Announcement", b =>
                 {
+                    b.HasOne("UrbanCommunity.Domain.Entities.District", "District")
+                        .WithMany()
+                        .HasForeignKey("DistrictId");
+
                     b.HasOne("UrbanCommunity.Domain.Entities.Neighborhood", "Neighborhood")
                         .WithMany("Announcements")
                         .HasForeignKey("NeighborhoodId")
                         .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("UrbanCommunity.Domain.Entities.Province", "Province")
+                        .WithMany()
+                        .HasForeignKey("ProvinceId");
 
                     b.HasOne("UrbanCommunity.Domain.Entities.User", "User")
                         .WithMany("Announcements")
@@ -1017,7 +1038,11 @@ namespace UrbanCommunity.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.Navigation("District");
+
                     b.Navigation("Neighborhood");
+
+                    b.Navigation("Province");
 
                     b.Navigation("User");
                 });
