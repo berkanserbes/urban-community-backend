@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations.Schema;
 using UrbanCommunity.Domain.Common;
+using UrbanCommunity.Domain.Enums;
 
 namespace UrbanCommunity.Domain.Entities;
 
@@ -12,7 +13,16 @@ public class Announcement : BaseEntity
     public Guid UserId { get; set; }
     public User User { get; set; } = null!;
 
-    // Target neighborhood (null indicates the whole city)
+    // Target scope
+    public AnnouncementScope Scope { get; set; } = AnnouncementScope.All;
+
+    // Target locations
+    public Guid? ProvinceId { get; set; }
+    public Province? Province { get; set; }
+
+    public Guid? DistrictId { get; set; }
+    public District? District { get; set; }
+
     public Guid? NeighborhoodId { get; set; }
     public Neighborhood? Neighborhood { get; set; }
 
