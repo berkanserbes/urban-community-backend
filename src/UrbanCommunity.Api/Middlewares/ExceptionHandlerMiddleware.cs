@@ -9,6 +9,8 @@ using UrbanCommunity.Domain.Common;
 
 namespace UrbanCommunity.Api.Middlewares;
 
+//TODO@berkanserbes: En iyi şekilde düzenlenecek. Loglamalar gelistirilecek.
+
 public class ExceptionHandlerMiddleware
 {
     private readonly RequestDelegate _next;
@@ -73,6 +75,10 @@ public class ExceptionHandlerMiddleware
         return exception switch
         {
             // 400 - Geçersiz girdi
+            InvalidInputException invalidInputEx => (
+                (int)HttpStatusCode.BadRequest,
+                [invalidInputEx.Message]),
+
             ValidationException validationEx => (
                 (int)HttpStatusCode.BadRequest,
                 validationEx.Errors.Select(e => e.ErrorMessage).ToArray()),
