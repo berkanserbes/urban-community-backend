@@ -54,10 +54,20 @@ public sealed class CloudinaryFileService : IFileService
     // ── Private helpers ──────────────────────────────────────────────────────
 
     private async Task<string> UploadAsync(ImageUploadParams p, CancellationToken ct)
-        => (await _cloudinary.UploadAsync(p, ct)).SecureUrl?.ToString() ?? string.Empty;
+    {
+        var result = await _cloudinary.UploadAsync(p, ct);
+        if (result.Error != null)
+            throw new InvalidOperationException($"Cloudinary image upload failed: {result.Error.Message}");
+        return result.SecureUrl?.ToString() ?? throw new InvalidOperationException("Cloudinary returned no URL.");
+    }
 
     private async Task<string> UploadAsync(VideoUploadParams p, CancellationToken ct)
-        => (await _cloudinary.UploadAsync(p, ct)).SecureUrl?.ToString() ?? string.Empty;
+    {
+        var result = await _cloudinary.UploadAsync(p, ct);
+        if (result.Error != null)
+            throw new InvalidOperationException($"Cloudinary video upload failed: {result.Error.Message}");
+        return result.SecureUrl?.ToString() ?? throw new InvalidOperationException("Cloudinary returned no URL.");
+    }
 
     private async Task<string> UploadAsync(RawUploadParams p)
         => (await _cloudinary.UploadAsync(p)).SecureUrl?.ToString() ?? string.Empty;
