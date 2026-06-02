@@ -16,6 +16,7 @@ public interface IApplicationDbContext
     DbSet<Suggestion> Suggestions { get; }
     DbSet<Vote> Votes { get; }
     DbSet<CommunityPost> CommunityPosts { get; }
+    DbSet<CommunityPostMedia> CommunityPostMedias { get; }
     DbSet<Notification> Notifications { get; }
     DbSet<ReportComment> ReportComments { get; }
     DbSet<SuggestionComment> SuggestionComments { get; }
