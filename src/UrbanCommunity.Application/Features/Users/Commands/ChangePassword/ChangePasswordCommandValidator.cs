@@ -12,7 +12,7 @@ public sealed class ChangePasswordCommandValidator : AbstractValidator<ChangePas
 
         RuleFor(x => x.NewPassword)
             .NotEmpty()
-            .MinimumLength(8)
+            .MinimumLength(6).WithMessage("Şifre en az 6 karakter uzunluğunda olmalıdır.")
             .Matches("[A-Z]").WithMessage("Şifre en az bir büyük harf içermelidir.")
             .Matches("[a-z]").WithMessage("Şifre en az bir küçük harf içermelidir.")
             .Matches("[0-9]").WithMessage("Şifre en az bir rakam içermelidir.")
