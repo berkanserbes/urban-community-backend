@@ -97,4 +97,6 @@ public class User : IdentityUser<Guid>
     {
         IsActive = true;
     }
+
+    public string GetUserFullName() => string.Join(' ', new[] { FirstName, LastName }.Where(name => !string.IsNullOrWhiteSpace(name)));
 }
