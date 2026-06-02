@@ -6,6 +6,7 @@ using UrbanCommunity.Application.Common.Models;
 using UrbanCommunity.Application.Events;
 using UrbanCommunity.Application.Interfaces;
 using UrbanCommunity.Domain.Entities;
+using UrbanCommunity.Domain.Enums;
 
 namespace UrbanCommunity.Application.Features.Announcements.Commands.CreateAnnouncement;
 
@@ -16,12 +17,30 @@ public sealed class CreateAnnouncementCommandHandler(
 {
     public async Task<Result<CreateAnnouncementCommandResponse>> Handle(CreateAnnouncementCommand request, CancellationToken cancellationToken)
     {
+
+        if (request.ProvinceId.HasValue)
+        {
+            var provinceExists = await context.Provinces
+                .AsNoTracking()
+                .AnyAsync(p => p.Id == request.ProvinceId.Value, cancellationToken);
+            if (!provinceExists)
+                throw new NotFoundException(nameof(Province), request.ProvinceId.Value);
+        }
+
+        if (request.DistrictId.HasValue)
+        {
+            var districtExists = await context.Districts
+                .AsNoTracking()
+                .AnyAsync(d => d.Id == request.DistrictId.Value, cancellationToken);
+            if (!districtExists)
+                throw new NotFoundException(nameof(District), request.DistrictId.Value);
+        }
+
         if (request.NeighborhoodId.HasValue)
         {
             var neighborhoodExists = await context.Neighborhoods
                 .AsNoTracking()
                 .AnyAsync(n => n.Id == request.NeighborhoodId.Value, cancellationToken);
-
             if (!neighborhoodExists)
                 throw new NotFoundException(nameof(Neighborhood), request.NeighborhoodId.Value);
         }
@@ -36,6 +55,9 @@ public sealed class CreateAnnouncementCommandHandler(
             Title = request.Title.Trim(),
             Content = request.Content.Trim(),
             UserId = request.UserId,
+            Scope = request.Scope,
+            ProvinceId = request.ProvinceId,
+            DistrictId = request.DistrictId,
             NeighborhoodId = request.NeighborhoodId,
             ExpiresAt = request.ExpiresAt
         };
@@ -49,7 +71,10 @@ public sealed class CreateAnnouncementCommandHandler(
             Title = announcement.Title,
             Content = announcement.Content,
             PublishedByUserId = announcement.UserId,
-            PublishedByUserFullName = $"{user.FirstName} {user.LastName}",
+            PublishedByUserFullName = user.GetUserFullName(),
+            Scope = announcement.Scope,
+            ProvinceId = announcement.ProvinceId,
+            DistrictId = announcement.DistrictId,
             NeighborhoodId = announcement.NeighborhoodId,
             ExpiresAt = announcement.ExpiresAt,
             CreatedAt = announcement.CreatedAt
@@ -59,6 +84,8 @@ public sealed class CreateAnnouncementCommandHandler(
             new CreateAnnouncementCommandResponse(
                 announcement.Id,
                 announcement.Title,
+                announcement.Content,
+                announcement.Scope,
                 announcement.IsActive,
                 announcement.ExpiresAt,
                 announcement.CreatedAt));
