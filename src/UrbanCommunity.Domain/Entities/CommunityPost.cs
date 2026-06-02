@@ -42,6 +42,7 @@ public class CommunityPost : BaseEntity
     public Guid NeighborhoodId { get; set; }
     public Neighborhood Neighborhood { get; set; } = null!;
 
+    public ICollection<CommunityPostMedia> Media { get; set; } = new List<CommunityPostMedia>();
     public ICollection<CommunityPostComment> Comments { get; set; } = new List<CommunityPostComment>();
 
     public IReadOnlyCollection<CommunityPostStatus> GetAllowedNextStatuses()

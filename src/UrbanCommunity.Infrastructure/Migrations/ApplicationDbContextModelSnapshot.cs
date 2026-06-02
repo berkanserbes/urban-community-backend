@@ -296,6 +296,61 @@ namespace UrbanCommunity.Infrastructure.Migrations
                     b.ToTable("CommunityPostComments");
                 });
 
+            modelBuilder.Entity("UrbanCommunity.Domain.Entities.CommunityPostMedia", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CommunityPostId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ContentType")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("DisplayOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<long?>("FileSizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("MediaType")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("OriginalFileName")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("ThumbnailUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CommunityPostId", "DisplayOrder");
+
+                    b.ToTable("CommunityPostMedias", t =>
+                        {
+                            t.HasCheckConstraint("CK_CommunityPostMedias_DisplayOrder_NonNegative", "\"DisplayOrder\" >= 0");
+
+                            t.HasCheckConstraint("CK_CommunityPostMedias_FileSizeBytes_NonNegative", "\"FileSizeBytes\" IS NULL OR \"FileSizeBytes\" >= 0");
+                        });
+                });
+
             modelBuilder.Entity("UrbanCommunity.Domain.Entities.Department", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1085,6 +1140,17 @@ namespace UrbanCommunity.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("UrbanCommunity.Domain.Entities.CommunityPostMedia", b =>
+                {
+                    b.HasOne("UrbanCommunity.Domain.Entities.CommunityPost", "CommunityPost")
+                        .WithMany("Media")
+                        .HasForeignKey("CommunityPostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CommunityPost");
+                });
+
             modelBuilder.Entity("UrbanCommunity.Domain.Entities.District", b =>
                 {
                     b.HasOne("UrbanCommunity.Domain.Entities.Province", "Province")
@@ -1278,6 +1344,8 @@ namespace UrbanCommunity.Infrastructure.Migrations
             modelBuilder.Entity("UrbanCommunity.Domain.Entities.CommunityPost", b =>
                 {
                     b.Navigation("Comments");
+
+                    b.Navigation("Media");
                 });
 
             modelBuilder.Entity("UrbanCommunity.Domain.Entities.Department", b =>

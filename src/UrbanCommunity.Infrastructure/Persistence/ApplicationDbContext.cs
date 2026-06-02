@@ -24,6 +24,7 @@ public class ApplicationDbContext : IdentityDbContext<User, IdentityRole<Guid>, 
     public DbSet<Suggestion> Suggestions => Set<Suggestion>();
     public DbSet<Vote> Votes => Set<Vote>();
     public DbSet<CommunityPost> CommunityPosts => Set<CommunityPost>();
+    public DbSet<CommunityPostMedia> CommunityPostMedias => Set<CommunityPostMedia>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<ReportComment> ReportComments => Set<ReportComment>();
     public DbSet<SuggestionComment> SuggestionComments => Set<SuggestionComment>();
