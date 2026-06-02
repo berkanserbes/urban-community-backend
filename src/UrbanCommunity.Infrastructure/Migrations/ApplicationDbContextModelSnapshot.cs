@@ -225,14 +225,25 @@ namespace UrbanCommunity.Infrastructure.Migrations
 
                     b.Property<string>("Content")
                         .IsRequired()
-                        .HasMaxLength(1500)
-                        .HasColumnType("character varying(1500)");
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<Guid>("NeighborhoodId")
+                    b.Property<Guid?>("DistrictId")
                         .HasColumnType("uuid");
+
+                    b.Property<Guid?>("NeighborhoodId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ProvinceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Scope")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(3);
 
                     b.Property<int>("Status")
                         .HasColumnType("integer");
@@ -253,7 +264,11 @@ namespace UrbanCommunity.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("DistrictId");
+
                     b.HasIndex("NeighborhoodId");
+
+                    b.HasIndex("ProvinceId");
 
                     b.HasIndex("Status");
 
@@ -261,7 +276,16 @@ namespace UrbanCommunity.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("CommunityPosts");
+                    b.HasIndex("Scope", "DistrictId", "Status");
+
+                    b.HasIndex("Scope", "NeighborhoodId", "Status");
+
+                    b.HasIndex("Scope", "ProvinceId", "Status");
+
+                    b.ToTable("CommunityPosts", t =>
+                        {
+                            t.HasCheckConstraint("CK_CommunityPosts_Scope_Location", "(\"Scope\" = 1 AND \"ProvinceId\" IS NOT NULL AND \"DistrictId\" IS NULL AND \"NeighborhoodId\" IS NULL) OR (\"Scope\" = 2 AND \"DistrictId\" IS NOT NULL AND \"ProvinceId\" IS NULL AND \"NeighborhoodId\" IS NULL) OR (\"Scope\" = 3 AND \"NeighborhoodId\" IS NOT NULL AND \"ProvinceId\" IS NULL AND \"DistrictId\" IS NULL)");
+                        });
                 });
 
             modelBuilder.Entity("UrbanCommunity.Domain.Entities.CommunityPostComment", b =>
@@ -1104,11 +1128,20 @@ namespace UrbanCommunity.Infrastructure.Migrations
 
             modelBuilder.Entity("UrbanCommunity.Domain.Entities.CommunityPost", b =>
                 {
+                    b.HasOne("UrbanCommunity.Domain.Entities.District", "District")
+                        .WithMany()
+                        .HasForeignKey("DistrictId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("UrbanCommunity.Domain.Entities.Neighborhood", "Neighborhood")
                         .WithMany("CommunityPosts")
                         .HasForeignKey("NeighborhoodId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("UrbanCommunity.Domain.Entities.Province", "Province")
+                        .WithMany()
+                        .HasForeignKey("ProvinceId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("UrbanCommunity.Domain.Entities.User", "User")
                         .WithMany("CommunityPosts")
@@ -1116,7 +1149,11 @@ namespace UrbanCommunity.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.Navigation("District");
+
                     b.Navigation("Neighborhood");
+
+                    b.Navigation("Province");
 
                     b.Navigation("User");
                 });

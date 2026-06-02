@@ -24,6 +24,13 @@ public enum CommunityPostStatus
     Archived = 5
 }
 
+public enum CommunityPostScope
+{
+    Province = 1,
+    District = 2,
+    Neighborhood = 3
+}
+
 public enum MediaType
 {
     Image = 1,

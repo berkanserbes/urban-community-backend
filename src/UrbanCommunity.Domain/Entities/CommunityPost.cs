@@ -35,12 +35,19 @@ public class CommunityPost : BaseEntity
     public string Content { get; set; } = string.Empty;
 
     public CommunityPostStatus Status { get; set; } = CommunityPostStatus.Active;
+    public CommunityPostScope Scope { get; set; } = CommunityPostScope.Neighborhood;
 
     public Guid UserId { get; set; }
     public User User { get; set; } = null!;
 
-    public Guid NeighborhoodId { get; set; }
-    public Neighborhood Neighborhood { get; set; } = null!;
+    public Guid? ProvinceId { get; set; }
+    public Province? Province { get; set; }
+
+    public Guid? DistrictId { get; set; }
+    public District? District { get; set; }
+
+    public Guid? NeighborhoodId { get; set; }
+    public Neighborhood? Neighborhood { get; set; }
 
     public ICollection<CommunityPostMedia> Media { get; set; } = new List<CommunityPostMedia>();
     public ICollection<CommunityPostComment> Comments { get; set; } = new List<CommunityPostComment>();
