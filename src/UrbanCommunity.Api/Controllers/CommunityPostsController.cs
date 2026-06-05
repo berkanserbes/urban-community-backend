@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using UrbanCommunity.Api.Constants;
 using UrbanCommunity.Application.Features.CommunityPosts.Commands.ChangeCommunityPostStatus;
 using UrbanCommunity.Application.Features.CommunityPosts.Commands.CreateCommunityPost;
 using UrbanCommunity.Application.Features.CommunityPosts.Commands.DeleteCommunityPost;
@@ -59,7 +60,8 @@ public class CommunityPostsController(IMediator mediator) : ApiController
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CreateCommunityPostRequest request, CancellationToken cancellationToken)
+    [RequestSizeLimit(ApiConstants.MaxUploadSize)]
+    public async Task<IActionResult> Create([FromForm] CreateCommunityPostRequest request, CancellationToken cancellationToken)
     {
         var userId = GetCurrentUserId();
         var command = new CreateCommunityPostCommand(
@@ -71,17 +73,24 @@ public class CommunityPostsController(IMediator mediator) : ApiController
             request.ProvinceId,
             request.DistrictId,
             request.NeighborhoodId,
-            request.MediaUrls);
+            request.Media);
 
         var result = await mediator.Send(command, cancellationToken);
         return CreatedAtAction(nameof(GetById), new { id = result.Data?.Id }, result);
     }
 
     [HttpPut("{id:guid}")]
-    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateCommunityPostRequest request, CancellationToken cancellationToken)
+    [RequestSizeLimit(ApiConstants.MaxUploadSize)]
+    public async Task<IActionResult> Update(Guid id, [FromForm] UpdateCommunityPostRequest request, CancellationToken cancellationToken)
     {
         var requestingUserId = GetCurrentUserId();
-        var result = await mediator.Send(new UpdateCommunityPostCommand(id, requestingUserId, request.Title, request.Content), cancellationToken);
+        var result = await mediator.Send(new UpdateCommunityPostCommand(
+            id,
+            requestingUserId,
+            request.Title,
+            request.Content,
+            request.KeepMediaIds,
+            request.Media), cancellationToken);
         return Ok(result);
     }
 
@@ -103,15 +112,23 @@ public class CommunityPostsController(IMediator mediator) : ApiController
     }
 }
 
-public sealed record CreateCommunityPostRequest(
-    PostType Type,
-    string Title,
-    string Content,
-    CommunityPostScope Scope = CommunityPostScope.Neighborhood,
-    Guid? ProvinceId = null,
-    Guid? DistrictId = null,
-    Guid? NeighborhoodId = null,
-    IReadOnlyList<string>? MediaUrls = null);
+public sealed class CreateCommunityPostRequest
+{
+    public PostType Type { get; init; }
+    public string Title { get; init; } = string.Empty;
+    public string Content { get; init; } = string.Empty;
+    public CommunityPostScope Scope { get; init; } = CommunityPostScope.Neighborhood;
+    public Guid? ProvinceId { get; init; }
+    public Guid? DistrictId { get; init; }
+    public Guid? NeighborhoodId { get; init; }
+    public IReadOnlyList<IFormFile>? Media { get; init; }
+}
 
-public sealed record UpdateCommunityPostRequest(string Title, string Content);
+public sealed class UpdateCommunityPostRequest
+{
+    public string Title { get; init; } = string.Empty;
+    public string Content { get; init; } = string.Empty;
+    public IReadOnlyList<Guid>? KeepMediaIds { get; init; }
+    public IReadOnlyList<IFormFile>? Media { get; init; }
+}
 public sealed record ChangeCommunityPostStatusRequest(CommunityPostStatus NewStatus);
