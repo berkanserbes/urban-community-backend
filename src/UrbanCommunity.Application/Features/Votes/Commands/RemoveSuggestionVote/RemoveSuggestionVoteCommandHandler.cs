@@ -25,6 +25,7 @@ public sealed class RemoveSuggestionVoteCommandHandler(IApplicationDbContext con
         }
 
         context.Votes.Remove(vote);
+        await context.SaveChangesAsync(cancellationToken);
 
         var upvoteCount = await context.Votes.CountAsync(
             v => v.SuggestionId == request.SuggestionId && v.IsUpvote, cancellationToken);
@@ -32,13 +33,7 @@ public sealed class RemoveSuggestionVoteCommandHandler(IApplicationDbContext con
         var downvoteCount = await context.Votes.CountAsync(
             v => v.SuggestionId == request.SuggestionId && !v.IsUpvote, cancellationToken);
 
-        if (vote.IsUpvote)
-            upvoteCount--;
-        else
-            downvoteCount--;
-
         suggestion.VoteScore = upvoteCount - downvoteCount;
-
         await context.SaveChangesAsync(cancellationToken);
 
         return Result<RemoveSuggestionVoteCommandResponse>.Success(

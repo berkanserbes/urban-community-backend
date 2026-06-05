@@ -30,14 +30,6 @@ public sealed class SetSuggestionVoteCommandHandler(IApplicationDbContext contex
             vote => vote.SuggestionId == request.SuggestionId && vote.UserId == request.UserId,
             cancellationToken);
 
-        var upvoteCount = await context.Votes.CountAsync(
-            vote => vote.SuggestionId == request.SuggestionId && vote.IsUpvote,
-            cancellationToken);
-
-        var downvoteCount = await context.Votes.CountAsync(
-            vote => vote.SuggestionId == request.SuggestionId && !vote.IsUpvote,
-            cancellationToken);
-
         if (existingVote is null)
         {
             var vote = new Vote
@@ -48,30 +40,23 @@ public sealed class SetSuggestionVoteCommandHandler(IApplicationDbContext contex
             };
 
             context.Votes.Add(vote);
-
-            if (request.IsUpvote)
-                upvoteCount++;
-            else
-                downvoteCount++;
         }
         else if (existingVote.IsUpvote != request.IsUpvote)
         {
             existingVote.IsUpvote = request.IsUpvote;
-
-            if (request.IsUpvote)
-            {
-                upvoteCount++;
-                downvoteCount--;
-            }
-            else
-            {
-                downvoteCount++;
-                upvoteCount--;
-            }
         }
 
-        suggestion.VoteScore = upvoteCount - downvoteCount;
+        await context.SaveChangesAsync(cancellationToken);
 
+        var upvoteCount = await context.Votes.CountAsync(
+            vote => vote.SuggestionId == request.SuggestionId && vote.IsUpvote,
+            cancellationToken);
+
+        var downvoteCount = await context.Votes.CountAsync(
+            vote => vote.SuggestionId == request.SuggestionId && !vote.IsUpvote,
+            cancellationToken);
+
+        suggestion.VoteScore = upvoteCount - downvoteCount;
         await context.SaveChangesAsync(cancellationToken);
 
         return Result<SetSuggestionVoteCommandResponse>.Success(new SetSuggestionVoteCommandResponse(
