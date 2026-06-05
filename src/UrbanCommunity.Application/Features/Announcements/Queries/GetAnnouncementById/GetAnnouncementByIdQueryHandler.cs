@@ -15,6 +15,8 @@ public sealed class GetAnnouncementByIdQueryHandler(IApplicationDbContext contex
         var announcement = await context.Announcements
             .AsNoTracking()
             .Include(a => a.User)
+            .Include(a => a.Province)
+            .Include(a => a.District)
             .Include(a => a.Neighborhood)
             .FirstOrDefaultAsync(a => a.Id == request.Id, cancellationToken)
             ?? throw new NotFoundException(nameof(Announcement), request.Id);
@@ -24,7 +26,12 @@ public sealed class GetAnnouncementByIdQueryHandler(IApplicationDbContext contex
             announcement.Title,
             announcement.Content,
             announcement.UserId,
-            $"{announcement.User.FirstName} {announcement.User.LastName}",
+            announcement.User.GetUserFullName(),
+            announcement.Scope,
+            announcement.ProvinceId,
+            announcement.Province?.Name,
+            announcement.DistrictId,
+            announcement.District?.Name,
             announcement.NeighborhoodId,
             announcement.Neighborhood?.Name,
             announcement.IsActive,
