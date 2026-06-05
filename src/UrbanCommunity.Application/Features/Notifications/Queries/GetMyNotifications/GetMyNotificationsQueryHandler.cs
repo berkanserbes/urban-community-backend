@@ -19,6 +19,7 @@ public sealed class GetMyNotificationsQueryHandler(IApplicationDbContext context
 
         var notifications = await query
             .OrderByDescending(n => n.CreatedAt)
+            .ThenByDescending(n => n.Id)
             .Select(n => new GetMyNotificationsQueryResponse(
                 n.Id,
                 n.Title,

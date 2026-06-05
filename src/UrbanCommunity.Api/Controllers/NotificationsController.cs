@@ -6,6 +6,7 @@ using UrbanCommunity.Application.Features.Notifications.Commands.DeleteNotificat
 using UrbanCommunity.Application.Features.Notifications.Commands.MarkAllAsRead;
 using UrbanCommunity.Application.Features.Notifications.Commands.MarkAsRead;
 using UrbanCommunity.Application.Features.Notifications.Commands.MarkAsUnread;
+using UrbanCommunity.Application.Features.Notifications.Queries.GetNotificationById;
 using UrbanCommunity.Application.Features.Notifications.Queries.GetMyNotifications;
 using UrbanCommunity.Application.Features.Notifications.Queries.GetUnreadCount;
 
@@ -26,6 +27,15 @@ public class NotificationsController(IMediator mediator) : ApiController
         return Ok(result);
     }
 
+    [HttpGet("{id:guid}")]
+    public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
+    {
+        var userId = GetCurrentUserId();
+        var isAdmin = User.IsInRole("Admin");
+        var result = await mediator.Send(new GetNotificationByIdQuery(id, userId, isAdmin), cancellationToken);
+        return Ok(result);
+    }
+
     [HttpGet("unread-count")]
     public async Task<IActionResult> GetUnreadCount(CancellationToken cancellationToken)
     {
@@ -34,7 +44,7 @@ public class NotificationsController(IMediator mediator) : ApiController
         return Ok(result);
     }
 
-    [HttpPatch("{id}/read")]
+    [HttpPatch("{id:guid}/read")]
     public async Task<IActionResult> MarkAsRead(Guid id, CancellationToken cancellationToken)
     {
         var userId = GetCurrentUserId();
@@ -50,7 +60,7 @@ public class NotificationsController(IMediator mediator) : ApiController
         return Ok(result);
     }
 
-    [HttpPatch("{id}/unread")]
+    [HttpPatch("{id:guid}/unread")]
     public async Task<IActionResult> MarkAsUnread(Guid id, CancellationToken cancellationToken)
     {
         var userId = GetCurrentUserId();
@@ -58,7 +68,7 @@ public class NotificationsController(IMediator mediator) : ApiController
         return Ok(result);
     }
 
-    [HttpDelete("{id}")]
+    [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         var userId = GetCurrentUserId();
