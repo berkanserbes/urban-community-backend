@@ -16,11 +16,12 @@ using UrbanCommunity.Application.Features.Users.Queries.GetUsers;
 using UrbanCommunity.Application.Features.Users.Queries.GetUsersByProvince;
 using UrbanCommunity.Application.Features.Users.Queries.GetUsersByDistrict;
 using UrbanCommunity.Application.Features.Users.Queries.GetUsersByNeighborhood;
+using UrbanCommunity.Domain.Enums;
 
 namespace UrbanCommunity.Api.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/users")]
 [Authorize]
 public class UsersController(IMediator mediator) : ApiController
 {
@@ -81,14 +82,14 @@ public class UsersController(IMediator mediator) : ApiController
 
     /// <summary>Changes the password of the authenticated user after verifying the current password.</summary>
     [HttpPut("me/password")]
-    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordCommand command)
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
     {
         var userId = GetCurrentUserId();
-
-        if (userId != command.UserId)
-            return Forbid();
-
-        var result = await mediator.Send(command);
+        var result = await mediator.Send(new ChangePasswordCommand(
+            userId,
+            request.CurrentPassword,
+            request.NewPassword,
+            request.ConfirmNewPassword));
 
         if (!result.IsSuccess)
             return BadRequest(result);
@@ -97,7 +98,7 @@ public class UsersController(IMediator mediator) : ApiController
     }
 
     /// <summary>Returns the public profile of the specified user.</summary>
-    [HttpGet("{id}")]
+    [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await mediator.Send(new GetUserByIdQuery(id));
@@ -114,7 +115,7 @@ public class UsersController(IMediator mediator) : ApiController
     }
 
     /// <summary>Returns active users filtered by province. Restricted to Admin.</summary>
-    [HttpGet("province/{provinceId}")]
+    [HttpGet("by-province/{provinceId:guid}")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> GetByProvince(Guid provinceId)
     {
@@ -123,7 +124,7 @@ public class UsersController(IMediator mediator) : ApiController
     }
 
     /// <summary>Returns active users filtered by district. Restricted to Admin.</summary>
-    [HttpGet("district/{districtId}")]
+    [HttpGet("by-district/{districtId:guid}")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> GetByDistrict(Guid districtId)
     {
@@ -132,7 +133,7 @@ public class UsersController(IMediator mediator) : ApiController
     }
 
     /// <summary>Returns active users filtered by neighborhood. Restricted to Admin.</summary>
-    [HttpGet("neighborhood/{neighborhoodId}")]
+    [HttpGet("by-neighborhood/{neighborhoodId:guid}")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> GetByNeighborhood(Guid neighborhoodId)
     {
@@ -141,7 +142,7 @@ public class UsersController(IMediator mediator) : ApiController
     }
 
     /// <summary>Updates a user's profile information. Restricted to Admin.</summary>
-    [HttpPut("{id}")]
+    [HttpPut("{id:guid}")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> AdminUpdateUser(Guid id, [FromBody] AdminUpdateUserRequest request)
     {
@@ -160,14 +161,11 @@ public class UsersController(IMediator mediator) : ApiController
     }
 
     /// <summary>Assigns a role to the specified user. Restricted to Admin.</summary>
-    [HttpPut("{id}/role")]
+    [HttpPut("{id:guid}/role")]
     [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> AssignRole(Guid id, [FromBody] AssignRoleCommand command)
+    public async Task<IActionResult> AssignRole(Guid id, [FromBody] AssignRoleRequest request)
     {
-        if (id != command.Id)
-            return BadRequest("Route id does not match the request body id.");
-
-        var result = await mediator.Send(command);
+        var result = await mediator.Send(new AssignRoleCommand(id, request.Role, request.DepartmentId));
 
         if (!result.IsSuccess)
             return BadRequest(result);
@@ -176,7 +174,7 @@ public class UsersController(IMediator mediator) : ApiController
     }
 
     /// <summary>Deactivates the specified user account. Restricted to Admin.</summary>
-    [HttpDelete("{id}")]
+    [HttpDelete("{id:guid}")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Deactivate(Guid id)
     {
@@ -185,7 +183,7 @@ public class UsersController(IMediator mediator) : ApiController
     }
 
     /// <summary>Reactivates a previously deactivated user account. Restricted to Admin.</summary>
-    [HttpPatch("{id}/activate")]
+    [HttpPatch("{id:guid}/activate")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Activate(Guid id)
     {
@@ -202,6 +200,11 @@ public sealed record UpdateProfileRequest(
     Guid? NeighborhoodId,
     string? PhoneNumber);
 
+public sealed record ChangePasswordRequest(
+    string CurrentPassword,
+    string NewPassword,
+    string ConfirmNewPassword);
+
 public sealed record AdminUpdateUserRequest(
     string FirstName,
     string LastName,
@@ -209,3 +212,4 @@ public sealed record AdminUpdateUserRequest(
     string? PhoneNumber,
     Guid? NeighborhoodId);
 
+public sealed record AssignRoleRequest(UserRole Role, Guid? DepartmentId);
