@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using UrbanCommunity.Application.Common.Exceptions;
 using UrbanCommunity.Application.Common.Models;
+using UrbanCommunity.Application.Features.CommunityPosts;
 using UrbanCommunity.Application.Interfaces;
 using CommunityPostCommentEntity = UrbanCommunity.Domain.Entities.CommunityPostComment;
 
@@ -15,8 +16,19 @@ public sealed class GetCommunityPostCommentByIdQueryHandler(IApplicationDbContex
         var comment = await context.CommunityPostComments
             .AsNoTracking()
             .Include(c => c.User)
+            .Include(c => c.CommunityPost)
             .FirstOrDefaultAsync(c => c.Id == request.CommentId, cancellationToken)
             ?? throw new NotFoundException(nameof(CommunityPostCommentEntity), request.CommentId);
+
+        if (!request.IsAdmin)
+        {
+            var viewerLocation = await CommunityPostVisibility.GetViewerLocationAsync(context, request.RequestingUserId, cancellationToken);
+
+            if (!comment.CommunityPost.IsVisibleTo(viewerLocation))
+            {
+                throw new ForbiddenAccessException("Bu topluluk gönderisi yorumunu görüntüleme yetkiniz yok.");
+            }
+        }
 
         return Result<GetCommunityPostCommentByIdQueryResponse>.Success(
             new GetCommunityPostCommentByIdQueryResponse(

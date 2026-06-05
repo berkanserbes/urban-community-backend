@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using UrbanCommunity.Application.Common.Exceptions;
 using UrbanCommunity.Application.Common.Models;
+using UrbanCommunity.Application.Features.CommunityPosts;
 using UrbanCommunity.Application.Interfaces;
 using UrbanCommunity.Domain.Entities;
 using CommunityPostCommentEntity = UrbanCommunity.Domain.Entities.CommunityPostComment;
@@ -13,14 +14,16 @@ public sealed class AddCommunityPostCommentCommandHandler(IApplicationDbContext 
 {
     public async Task<Result<AddCommunityPostCommentCommandResponse>> Handle(AddCommunityPostCommentCommand request, CancellationToken cancellationToken)
     {
-        if (!await context.CommunityPosts.AsNoTracking().AnyAsync(post => post.Id == request.CommunityPostId, cancellationToken))
-        {
-            throw new NotFoundException(nameof(CommunityPost), request.CommunityPostId);
-        }
+        var post = await context.CommunityPosts
+            .AsNoTracking()
+            .FirstOrDefaultAsync(post => post.Id == request.CommunityPostId, cancellationToken)
+            ?? throw new NotFoundException(nameof(CommunityPost), request.CommunityPostId);
 
-        if (!await context.Users.AsNoTracking().AnyAsync(user => user.Id == request.UserId && user.IsActive, cancellationToken))
+        var viewerLocation = await CommunityPostVisibility.GetViewerLocationAsync(context, request.UserId, cancellationToken);
+
+        if (!post.IsVisibleTo(viewerLocation))
         {
-            throw new NotFoundException(nameof(User), request.UserId);
+            throw new ForbiddenAccessException("Bu topluluk gönderisine yorum yapma yetkiniz yok.");
         }
 
         var comment = new CommunityPostCommentEntity
