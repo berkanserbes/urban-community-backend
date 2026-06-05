@@ -1,12 +1,14 @@
 using MediatR;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using UrbanCommunity.Application.Common.Exceptions;
 using UrbanCommunity.Application.Common.Models;
+using UrbanCommunity.Application.Interfaces;
 using UrbanCommunity.Domain.Entities;
 
 namespace UrbanCommunity.Application.Features.Users.Commands.AdminUpdateUser;
 
-public sealed class AdminUpdateUserCommandHandler(UserManager<User> userManager)
+public sealed class AdminUpdateUserCommandHandler(UserManager<User> userManager, IApplicationDbContext context)
     : IRequestHandler<AdminUpdateUserCommand, Result<AdminUpdateUserCommandResponse>>
 {
     public async Task<Result<AdminUpdateUserCommandResponse>> Handle(
@@ -21,6 +23,17 @@ public sealed class AdminUpdateUserCommandHandler(UserManager<User> userManager)
         }
 
         user.UpdateProfile(request.FirstName, request.LastName, request.Bio);
+
+        if (request.NeighborhoodId.HasValue)
+        {
+            var neighborhoodExists = await context.Neighborhoods
+                .AsNoTracking()
+                .AnyAsync(n => n.Id == request.NeighborhoodId.Value, cancellationToken);
+
+            if (!neighborhoodExists)
+                throw new NotFoundException(nameof(Neighborhood), request.NeighborhoodId.Value);
+        }
+
         user.AssignNeighborhood(request.NeighborhoodId);
 
         if (request.PhoneNumber != user.PhoneNumber)
