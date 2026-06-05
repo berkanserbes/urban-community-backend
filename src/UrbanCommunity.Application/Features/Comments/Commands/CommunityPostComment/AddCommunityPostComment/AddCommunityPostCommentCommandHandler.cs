@@ -19,9 +19,9 @@ public sealed class AddCommunityPostCommentCommandHandler(IApplicationDbContext 
             .FirstOrDefaultAsync(post => post.Id == request.CommunityPostId, cancellationToken)
             ?? throw new NotFoundException(nameof(CommunityPost), request.CommunityPostId);
 
-        var viewerLocation = await CommunityPostVisibility.GetViewerLocationAsync(context, request.UserId, cancellationToken);
+        var accessScope = await CommunityPostAccessPolicy.ResolveUserAccessScopeAsync(context, request.UserId, cancellationToken);
 
-        if (!post.IsVisibleTo(viewerLocation))
+        if (!post.IsVisibleTo(accessScope))
         {
             throw new ForbiddenAccessException("Bu topluluk gönderisine yorum yapma yetkiniz yok.");
         }

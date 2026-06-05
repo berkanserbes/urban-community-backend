@@ -6,14 +6,14 @@ using UrbanCommunity.Domain.Enums;
 
 namespace UrbanCommunity.Application.Features.CommunityPosts;
 
-internal sealed record CommunityPostViewerLocation(
+internal sealed record CommunityPostAccessScope(
     Guid? NeighborhoodId,
     Guid? DistrictId,
     Guid? ProvinceId);
 
-internal static class CommunityPostVisibility
+internal static class CommunityPostAccessPolicy
 {
-    internal static async Task<CommunityPostViewerLocation> GetViewerLocationAsync(
+    internal static async Task<CommunityPostAccessScope> ResolveUserAccessScopeAsync(
         IApplicationDbContext context,
         Guid userId,
         CancellationToken cancellationToken)
@@ -21,7 +21,7 @@ internal static class CommunityPostVisibility
         var location = await context.Users
             .AsNoTracking()
             .Where(user => user.Id == userId && user.IsActive)
-            .Select(user => new CommunityPostViewerLocation(
+            .Select(user => new CommunityPostAccessScope(
                 user.NeighborhoodId,
                 user.Neighborhood != null ? user.Neighborhood.DistrictId : null,
                 user.Neighborhood != null && user.Neighborhood.DistrictNavigation != null
@@ -44,27 +44,27 @@ internal static class CommunityPostVisibility
 
     internal static IQueryable<CommunityPost> WhereVisibleTo(
         this IQueryable<CommunityPost> query,
-        CommunityPostViewerLocation location)
+        CommunityPostAccessScope accessScope)
     {
         return query.Where(post =>
-            (post.Scope == CommunityPostScope.Neighborhood && post.NeighborhoodId == location.NeighborhoodId) ||
-            (post.Scope == CommunityPostScope.District && post.DistrictId == location.DistrictId) ||
-            (post.Scope == CommunityPostScope.Province && post.ProvinceId == location.ProvinceId));
+            (post.Scope == CommunityPostScope.Neighborhood && post.NeighborhoodId == accessScope.NeighborhoodId) ||
+            (post.Scope == CommunityPostScope.District && post.DistrictId == accessScope.DistrictId) ||
+            (post.Scope == CommunityPostScope.Province && post.ProvinceId == accessScope.ProvinceId));
     }
 
-    internal static bool IsVisibleTo(this CommunityPost post, CommunityPostViewerLocation location)
+    internal static bool IsVisibleTo(this CommunityPost post, CommunityPostAccessScope accessScope)
     {
         return post.Scope switch
         {
             CommunityPostScope.Neighborhood => post.NeighborhoodId.HasValue
-                && location.NeighborhoodId.HasValue
-                && post.NeighborhoodId == location.NeighborhoodId,
+                && accessScope.NeighborhoodId.HasValue
+                && post.NeighborhoodId == accessScope.NeighborhoodId,
             CommunityPostScope.District => post.DistrictId.HasValue
-                && location.DistrictId.HasValue
-                && post.DistrictId == location.DistrictId,
+                && accessScope.DistrictId.HasValue
+                && post.DistrictId == accessScope.DistrictId,
             CommunityPostScope.Province => post.ProvinceId.HasValue
-                && location.ProvinceId.HasValue
-                && post.ProvinceId == location.ProvinceId,
+                && accessScope.ProvinceId.HasValue
+                && post.ProvinceId == accessScope.ProvinceId,
             _ => false
         };
     }
@@ -74,19 +74,19 @@ internal static class CommunityPostVisibility
         Guid? provinceId,
         Guid? districtId,
         Guid? neighborhoodId,
-        CommunityPostViewerLocation location)
+        CommunityPostAccessScope accessScope)
     {
         return scope switch
         {
             CommunityPostScope.Neighborhood => neighborhoodId.HasValue
-                && location.NeighborhoodId.HasValue
-                && neighborhoodId == location.NeighborhoodId,
+                && accessScope.NeighborhoodId.HasValue
+                && neighborhoodId == accessScope.NeighborhoodId,
             CommunityPostScope.District => districtId.HasValue
-                && location.DistrictId.HasValue
-                && districtId == location.DistrictId,
+                && accessScope.DistrictId.HasValue
+                && districtId == accessScope.DistrictId,
             CommunityPostScope.Province => provinceId.HasValue
-                && location.ProvinceId.HasValue
-                && provinceId == location.ProvinceId,
+                && accessScope.ProvinceId.HasValue
+                && provinceId == accessScope.ProvinceId,
             _ => false
         };
     }

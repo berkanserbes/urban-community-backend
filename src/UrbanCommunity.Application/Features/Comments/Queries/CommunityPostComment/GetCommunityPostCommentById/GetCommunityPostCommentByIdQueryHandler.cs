@@ -22,9 +22,9 @@ public sealed class GetCommunityPostCommentByIdQueryHandler(IApplicationDbContex
 
         if (!request.IsAdmin)
         {
-            var viewerLocation = await CommunityPostVisibility.GetViewerLocationAsync(context, request.RequestingUserId, cancellationToken);
+            var accessScope = await CommunityPostAccessPolicy.ResolveUserAccessScopeAsync(context, request.RequestingUserId, cancellationToken);
 
-            if (!comment.CommunityPost.IsVisibleTo(viewerLocation))
+            if (!comment.CommunityPost.IsVisibleTo(accessScope))
             {
                 throw new ForbiddenAccessException("Bu topluluk gönderisi yorumunu görüntüleme yetkiniz yok.");
             }
