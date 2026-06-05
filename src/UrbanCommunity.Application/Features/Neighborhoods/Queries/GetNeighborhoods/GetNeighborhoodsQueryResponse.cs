@@ -3,5 +3,7 @@ namespace UrbanCommunity.Application.Features.Neighborhoods.Queries.GetNeighborh
 public sealed record GetNeighborhoodsQueryResponse(
     Guid Id,
     string Name,
-    string District,
-    string City);
+    Guid? DistrictId,
+    string? DistrictName,
+    Guid? ProvinceId,
+    string? ProvinceName);

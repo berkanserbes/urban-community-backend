@@ -12,17 +12,24 @@ public sealed class GetNeighborhoodsQueryHandler(IApplicationDbContext context)
     {
         var query = context.Neighborhoods.AsNoTracking().AsQueryable();
 
-        if (!string.IsNullOrWhiteSpace(request.City))
-            query = query.Where(n => n.City == request.City);
+        if (request.ProvinceId.HasValue)
+            query = query.Where(n => n.DistrictNavigation != null
+                && n.DistrictNavigation.ProvinceId == request.ProvinceId.Value);
 
-        if (!string.IsNullOrWhiteSpace(request.District))
-            query = query.Where(n => n.District == request.District);
+        if (request.DistrictId.HasValue)
+            query = query.Where(n => n.DistrictId == request.DistrictId.Value);
 
         var neighborhoods = await query
-            .OrderBy(n => n.City)
-            .ThenBy(n => n.District)
+            .OrderBy(n => n.DistrictNavigation != null ? n.DistrictNavigation.Province.Name : string.Empty)
+            .ThenBy(n => n.DistrictNavigation != null ? n.DistrictNavigation.Name : string.Empty)
             .ThenBy(n => n.Name)
-            .Select(n => new GetNeighborhoodsQueryResponse(n.Id, n.Name, n.District, n.City))
+            .Select(n => new GetNeighborhoodsQueryResponse(
+                n.Id,
+                n.Name,
+                n.DistrictId,
+                n.DistrictNavigation != null ? n.DistrictNavigation.Name : null,
+                n.DistrictNavigation != null ? (Guid?)n.DistrictNavigation.ProvinceId : null,
+                n.DistrictNavigation != null ? n.DistrictNavigation.Province.Name : null))
             .ToListAsync(cancellationToken);
 
         return Result<IReadOnlyList<GetNeighborhoodsQueryResponse>>.Success(neighborhoods);
