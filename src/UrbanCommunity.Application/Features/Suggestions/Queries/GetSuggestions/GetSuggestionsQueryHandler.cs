@@ -12,8 +12,6 @@ public sealed class GetSuggestionsQueryHandler(IApplicationDbContext context)
     {
         var query = context.Suggestions
             .AsNoTracking()
-            .Include(s => s.User)
-            .Include(s => s.Votes)
             .AsQueryable();
 
         if (request.Status.HasValue)
@@ -25,9 +23,6 @@ public sealed class GetSuggestionsQueryHandler(IApplicationDbContext context)
         var suggestions = await query
             .OrderByDescending(s => s.VoteScore)
             .ThenByDescending(s => s.CreatedAt)
-            .ToListAsync(cancellationToken);
-
-        var result = suggestions
             .Select(s => new GetSuggestionsQueryResponse(
                 s.Id,
                 s.Title,
@@ -37,10 +32,10 @@ public sealed class GetSuggestionsQueryHandler(IApplicationDbContext context)
                 s.Votes.Count(v => v.IsUpvote),
                 s.Votes.Count(v => !v.IsUpvote),
                 s.UserId,
-                s.User.FullName,
+                (s.User.FirstName + " " + s.User.LastName).Trim(),
                 s.CreatedAt))
-            .ToList();
+            .ToListAsync(cancellationToken);
 
-        return Result<IReadOnlyList<GetSuggestionsQueryResponse>>.Success(result);
+        return Result<IReadOnlyList<GetSuggestionsQueryResponse>>.Success(suggestions);
     }
 }
