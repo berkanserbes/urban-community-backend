@@ -15,16 +15,24 @@ public sealed class CreateAnnouncementCommandValidator : AbstractValidator<Creat
             .NotEmpty().WithMessage("İçerik boş olamaz.")
             .MaximumLength(2000).WithMessage("İçerik en fazla 2000 karakter olabilir.");
 
+        RuleFor(x => x.Scope)
+            .IsInEnum().WithMessage("Geçersiz duyuru kapsamı.");
+
         RuleFor(x => x)
-                .Must(x =>
-                    x.Scope switch
-                    {
-                        AnnouncementScope.Province => x.ProvinceId.HasValue,
-                        AnnouncementScope.District => x.DistrictId.HasValue,
-                        AnnouncementScope.Neighborhood => x.NeighborhoodId.HasValue,
-                        _ => true
-                    })
-                .WithMessage("Scope ile uyumlu ID zorunludur.");
+            .Must(x =>
+                x.Scope switch
+                {
+                    AnnouncementScope.All =>
+                        !x.ProvinceId.HasValue && !x.DistrictId.HasValue && !x.NeighborhoodId.HasValue,
+                    AnnouncementScope.Province =>
+                        x.ProvinceId.HasValue && !x.DistrictId.HasValue && !x.NeighborhoodId.HasValue,
+                    AnnouncementScope.District =>
+                        !x.ProvinceId.HasValue && x.DistrictId.HasValue && !x.NeighborhoodId.HasValue,
+                    AnnouncementScope.Neighborhood =>
+                        !x.ProvinceId.HasValue && !x.DistrictId.HasValue && x.NeighborhoodId.HasValue,
+                    _ => false
+                })
+            .WithMessage("Duyuru kapsamı ile yalnızca ilgili lokasyon ID'si gönderilmelidir.");
 
         RuleFor(x => x.ExpiresAt)
                 .Must(x => !x.HasValue || x.Value > DateTime.UtcNow)
