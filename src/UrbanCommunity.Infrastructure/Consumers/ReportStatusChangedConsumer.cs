@@ -19,12 +19,13 @@ public sealed class ReportStatusChangedConsumer(
 
         var statusLabel = evt.NewStatus switch
         {
-            ReportStatus.AI_Review   => "Yapay Zeka İncelemesinde",
-            ReportStatus.Confirmed   => "Onaylandı",
-            ReportStatus.InProgress  => "İşleme Alındı",
-            ReportStatus.Resolved    => "Çözüldü",
-            ReportStatus.Rejected    => "Reddedildi",
-            _                        => evt.NewStatus.ToString()
+            ReportStatus.PendingReview => "Onay Bekliyor",
+            ReportStatus.AiReview      => "Yapay Zeka İncelemesinde",
+            ReportStatus.Confirmed     => "Onaylandı",
+            ReportStatus.InProgress    => "İşleme Alındı",
+            ReportStatus.Resolved      => "Çözüldü",
+            ReportStatus.Rejected      => "Reddedildi",
+            _                          => evt.NewStatus.ToString()
         };
 
         var notification = new Notification

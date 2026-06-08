@@ -9,26 +9,24 @@ public class Report : BaseEntity
     private static readonly IReadOnlyDictionary<ReportStatus, ReportStatus[]> AllowedStatusTransitions =
         new Dictionary<ReportStatus, ReportStatus[]>
         {
-            [ReportStatus.Pending] =
+            [ReportStatus.PendingReview] =
             [
-                ReportStatus.AI_Review,
+                ReportStatus.AiReview,
                 ReportStatus.Confirmed,
                 ReportStatus.Rejected
             ],
-            [ReportStatus.AI_Review] =
+            [ReportStatus.AiReview] =
             [
-                ReportStatus.Pending,
-                ReportStatus.Confirmed,
-                ReportStatus.Rejected
+                ReportStatus.PendingReview
             ],
             [ReportStatus.Confirmed] =
             [
                 ReportStatus.InProgress,
-                ReportStatus.Resolved,
                 ReportStatus.Rejected
             ],
             [ReportStatus.InProgress] =
             [
+                ReportStatus.Confirmed,
                 ReportStatus.Resolved,
                 ReportStatus.Rejected
             ],
@@ -36,8 +34,8 @@ public class Report : BaseEntity
             [ReportStatus.InProgress],
             [ReportStatus.Rejected] =
             [
-                ReportStatus.Pending,
-                ReportStatus.AI_Review
+                ReportStatus.PendingReview,
+                ReportStatus.AiReview
             ]
         };
 
@@ -47,7 +45,7 @@ public class Report : BaseEntity
     // PostGIS Coğrafi Nokta
     public Point Location { get; set; } = null!;
     
-    public ReportStatus Status { get; set; } = ReportStatus.Pending;
+    public ReportStatus Status { get; set; } = ReportStatus.AiReview;
     public ReportPriority Priority { get; set; } = ReportPriority.Medium;
 
     // Normalized title and description hash for exact duplicate detection.

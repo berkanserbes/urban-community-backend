@@ -14,7 +14,7 @@ public sealed class ChangeReportStatusCommandValidator : AbstractValidator<Chang
             .IsInEnum().WithMessage("Geçerli bir rapor durumu seçilmelidir.");
 
         RuleFor(x => x.NewStatus)
-            .NotEqual(ReportStatus.AI_Review)
+            .NotEqual(ReportStatus.AiReview)
             .WithMessage("AI inceleme durumu yalnızca sistem tarafından başlatılabilir.");
 
         RuleFor(x => x.ChangedByUserId)

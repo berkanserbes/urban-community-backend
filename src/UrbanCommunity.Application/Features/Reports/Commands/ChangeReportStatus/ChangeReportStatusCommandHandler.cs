@@ -26,6 +26,12 @@ public sealed class ChangeReportStatusCommandHandler(
         if (oldStatus == request.NewStatus)
             return Result<ChangeReportStatusCommandResponse>.Failure(["Rapor zaten belirtilen durumda."]);
 
+        if (request.NewStatus == ReportStatus.InProgress && !report.AssignedDepartmentId.HasValue)
+        {
+            return Result<ChangeReportStatusCommandResponse>.Failure(
+                ["Rapor işleme alınmadan önce bir birime atanmalıdır."]);
+        }
+
         report.ChangeStatus(request.NewStatus, request.ChangedByUserId, request.Note);
 
         await context.SaveChangesAsync(cancellationToken);
@@ -61,8 +67,8 @@ public sealed class ChangeReportStatusCommandHandler(
     {
         return status switch
         {
-            ReportStatus.Pending => "Beklemede",
-            ReportStatus.AI_Review => "Yapay zeka incelemesinde",
+            ReportStatus.PendingReview => "Onay bekliyor",
+            ReportStatus.AiReview => "Yapay zeka incelemesinde",
             ReportStatus.Confirmed => "Onaylandı",
             ReportStatus.InProgress => "İşleme alındı",
             ReportStatus.Resolved => "Çözüldü",
