@@ -17,6 +17,7 @@ public class Report : BaseEntity
             ],
             [ReportStatus.AI_Review] =
             [
+                ReportStatus.Pending,
                 ReportStatus.Confirmed,
                 ReportStatus.Rejected
             ],
@@ -49,8 +50,8 @@ public class Report : BaseEntity
     public ReportStatus Status { get; set; } = ReportStatus.Pending;
     public ReportPriority Priority { get; set; } = ReportPriority.Medium;
 
-    // AI Benzerlik Hash (Mükerrer kontrolü için)
-    public string? SimilarityHash { get; set; }
+    // Normalized title and description hash for exact duplicate detection.
+    public string? ContentHash { get; set; }
 
     public DateTime? ResolvedAt { get; set; }
 
@@ -69,6 +70,8 @@ public class Report : BaseEntity
     public ICollection<ReportMedia> Media { get; set; } = new List<ReportMedia>();
     public ICollection<ReportHistory> History { get; set; } = new List<ReportHistory>();
     public ICollection<ReportComment> Comments { get; set; } = new List<ReportComment>();
+    public ICollection<ReportSimilarityMatch> SimilarReportMatches { get; set; } = new List<ReportSimilarityMatch>();
+    public ICollection<ReportSimilarityMatch> ReferencedAsSimilarMatches { get; set; } = new List<ReportSimilarityMatch>();
 
     public IReadOnlyCollection<ReportStatus> GetAllowedNextStatuses()
     {
@@ -79,7 +82,7 @@ public class Report : BaseEntity
 
     public bool CanTransitionTo(ReportStatus newStatus)
     {
-        return newStatus == Status || GetAllowedNextStatuses().Contains(newStatus);
+        return GetAllowedNextStatuses().Contains(newStatus);
     }
 
     public void ChangeStatus(ReportStatus newStatus, Guid? changedByUserId = null, string? note = null)
@@ -119,8 +122,8 @@ public class Report : BaseEntity
         Priority = priority;
     }
 
-    public void SetSimilarityHash(string? similarityHash)
+    public void SetContentHash(string? contentHash)
     {
-        SimilarityHash = string.IsNullOrWhiteSpace(similarityHash) ? null : similarityHash.Trim();
+        ContentHash = string.IsNullOrWhiteSpace(contentHash) ? null : contentHash.Trim();
     }
 }

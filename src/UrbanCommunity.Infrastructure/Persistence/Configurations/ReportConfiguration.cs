@@ -26,7 +26,7 @@ public class ReportConfiguration : BaseEntityConfiguration<Report>
             .IsRequired()
             .HasMaxLength(1000);
 
-        builder.Property(r => r.SimilarityHash)
+        builder.Property(r => r.ContentHash)
             .HasMaxLength(256);
 
         // İlişkiler
@@ -53,6 +53,7 @@ public class ReportConfiguration : BaseEntityConfiguration<Report>
         builder.HasIndex(r => r.Status);
         builder.HasIndex(r => r.Priority);
         builder.HasIndex(r => new { r.NeighborhoodId, r.Status });
+        builder.HasIndex(r => r.ContentHash);
 
         // PostGIS Spatial Index (konum bazlı sorguları hızlandırır)
         builder.HasIndex(r => r.Location)
