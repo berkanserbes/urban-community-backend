@@ -21,6 +21,7 @@ public class ApplicationDbContext : IdentityDbContext<User, IdentityRole<Guid>, 
     public DbSet<ReportCategory> ReportCategories => Set<ReportCategory>();
     public DbSet<ReportMedia> ReportMedias => Set<ReportMedia>();
     public DbSet<ReportHistory> ReportHistories => Set<ReportHistory>();
+    public DbSet<ReportSimilarityMatch> ReportSimilarityMatches => Set<ReportSimilarityMatch>();
     public DbSet<Suggestion> Suggestions => Set<Suggestion>();
     public DbSet<Vote> Votes => Set<Vote>();
     public DbSet<CommunityPost> CommunityPosts => Set<CommunityPost>();

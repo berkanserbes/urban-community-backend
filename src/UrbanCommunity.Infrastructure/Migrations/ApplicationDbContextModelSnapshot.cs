@@ -558,6 +558,10 @@ namespace UrbanCommunity.Infrastructure.Migrations
                     b.Property<Guid>("CategoryId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("ContentHash")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -579,10 +583,6 @@ namespace UrbanCommunity.Infrastructure.Migrations
                     b.Property<DateTime?>("ResolvedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("SimilarityHash")
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
-
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
@@ -602,6 +602,8 @@ namespace UrbanCommunity.Infrastructure.Migrations
                     b.HasIndex("AssignedDepartmentId");
 
                     b.HasIndex("CategoryId");
+
+                    b.HasIndex("ContentHash");
 
                     b.HasIndex("Location");
 
@@ -775,6 +777,47 @@ namespace UrbanCommunity.Infrastructure.Migrations
                             t.HasCheckConstraint("CK_ReportMedias_DisplayOrder_NonNegative", "\"DisplayOrder\" >= 0");
 
                             t.HasCheckConstraint("CK_ReportMedias_FileSizeBytes_NonNegative", "\"FileSizeBytes\" IS NULL OR \"FileSizeBytes\" >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("UrbanCommunity.Domain.Entities.ReportSimilarityMatch", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Reasoning")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("ReportId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SimilarReportId")
+                        .HasColumnType("uuid");
+
+                    b.Property<double>("SimilarityScore")
+                        .HasColumnType("double precision");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SimilarReportId");
+
+                    b.HasIndex("ReportId", "SimilarReportId")
+                        .IsUnique();
+
+                    b.ToTable("ReportSimilarityMatches", t =>
+                        {
+                            t.HasCheckConstraint("CK_ReportSimilarityMatches_DifferentReports", "\"ReportId\" <> \"SimilarReportId\"");
+
+                            t.HasCheckConstraint("CK_ReportSimilarityMatches_Score_Range", "\"SimilarityScore\" >= 0 AND \"SimilarityScore\" <= 1");
                         });
                 });
 
@@ -1301,6 +1344,25 @@ namespace UrbanCommunity.Infrastructure.Migrations
                     b.Navigation("Report");
                 });
 
+            modelBuilder.Entity("UrbanCommunity.Domain.Entities.ReportSimilarityMatch", b =>
+                {
+                    b.HasOne("UrbanCommunity.Domain.Entities.Report", "Report")
+                        .WithMany("SimilarReportMatches")
+                        .HasForeignKey("ReportId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("UrbanCommunity.Domain.Entities.Report", "SimilarReport")
+                        .WithMany("ReferencedAsSimilarMatches")
+                        .HasForeignKey("SimilarReportId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Report");
+
+                    b.Navigation("SimilarReport");
+                });
+
             modelBuilder.Entity("UrbanCommunity.Domain.Entities.Suggestion", b =>
                 {
                     b.HasOne("UrbanCommunity.Domain.Entities.User", "User")
@@ -1420,6 +1482,10 @@ namespace UrbanCommunity.Infrastructure.Migrations
                     b.Navigation("History");
 
                     b.Navigation("Media");
+
+                    b.Navigation("ReferencedAsSimilarMatches");
+
+                    b.Navigation("SimilarReportMatches");
                 });
 
             modelBuilder.Entity("UrbanCommunity.Domain.Entities.ReportCategory", b =>
