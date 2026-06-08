@@ -25,7 +25,7 @@ public sealed class DeleteReportCommandHandler(
         if (!request.IsAdmin && report.UserId != request.RequestingUserId)
             throw new ForbiddenAccessException("Bu raporu silme yetkiniz yok.");
 
-        if (!request.IsAdmin && report.Status != ReportStatus.Pending)
+        if (!request.IsAdmin && report.Status != ReportStatus.PendingReview)
             return Result<DeleteReportCommandResponse>.Failure(["Yalnızca beklemedeki raporlar silinebilir."]);
 
         var mediaUrls = report.Media.Select(media => media.Url).ToList();

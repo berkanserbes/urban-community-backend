@@ -19,7 +19,10 @@ public sealed class GetAllowedReportStatusTransitionsQueryHandler(IApplicationDb
             ?? throw new NotFoundException(nameof(Report), request.ReportId);
 
         var allowed = report.GetAllowedNextStatuses()
-            .Where(status => status != Domain.Enums.ReportStatus.AI_Review)
+            .Where(status => status != Domain.Enums.ReportStatus.AiReview)
+            .Where(status =>
+                status != Domain.Enums.ReportStatus.InProgress ||
+                report.AssignedDepartmentId.HasValue)
             .ToList();
 
         return Result<GetAllowedReportStatusTransitionsQueryResponse>.Success(
