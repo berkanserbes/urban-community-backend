@@ -13,6 +13,7 @@ public interface IApplicationDbContext
     DbSet<ReportCategory> ReportCategories { get; }
     DbSet<ReportMedia> ReportMedias { get; }
     DbSet<ReportHistory> ReportHistories { get; }
+    DbSet<ReportSimilarityMatch> ReportSimilarityMatches { get; }
     DbSet<Suggestion> Suggestions { get; }
     DbSet<Vote> Votes { get; }
     DbSet<CommunityPost> CommunityPosts { get; }
