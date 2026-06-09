@@ -9,8 +9,6 @@ using UrbanCommunity.Domain.Common;
 
 namespace UrbanCommunity.Api.Middlewares;
 
-//TODO@berkanserbes: En iyi şekilde düzenlenecek. Loglamalar gelistirilecek.
-
 public class ExceptionHandlerMiddleware
 {
     private readonly RequestDelegate _next;
