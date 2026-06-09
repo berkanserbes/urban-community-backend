@@ -18,12 +18,14 @@ public sealed class GetAllowedReportStatusTransitionsQueryHandler(IApplicationDb
             .FirstOrDefaultAsync(r => r.Id == request.ReportId, cancellationToken)
             ?? throw new NotFoundException(nameof(Report), request.ReportId);
 
-        var allowed = report.GetAllowedNextStatuses()
-            .Where(status => status != Domain.Enums.ReportStatus.AiReview)
-            .Where(status =>
-                status != Domain.Enums.ReportStatus.InProgress ||
-                report.AssignedDepartmentId.HasValue)
-            .ToList();
+        var allowed = report.Status == Domain.Enums.ReportStatus.AiReview
+            ? []
+            : report.GetAllowedNextStatuses()
+                .Where(status => status != Domain.Enums.ReportStatus.AiReview)
+                .Where(status =>
+                    status != Domain.Enums.ReportStatus.InProgress ||
+                    report.AssignedDepartmentId.HasValue)
+                .ToList();
 
         return Result<GetAllowedReportStatusTransitionsQueryResponse>.Success(
             new GetAllowedReportStatusTransitionsQueryResponse(report.Id, report.Status, allowed));
