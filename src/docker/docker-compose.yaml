@@ -51,8 +51,8 @@ services:
 
   urban-community-api:
     build:
-      context: ../../../
-      dockerfile: backend/src/docker/Dockerfile
+      context: ../..
+      dockerfile: src/docker/Dockerfile
     container_name: urban-community-api
     depends_on:
       urban-community-db:
@@ -61,7 +61,7 @@ services:
         condition: service_started
     environment:
       - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
-      - ASPNETCORE_URLS=http://+:80
+      - ASPNETCORE_URLS=http://+:8080
       - DB_CONNECTION_STRING=Host=urban-community-db;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
       - JWT_SECRET=${JWT_SECRET}
       - JWT_ISSUER=${JWT_ISSUER}
@@ -75,11 +75,44 @@ services:
       - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
       - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
       - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
+      - AI_SERVICE_BASE_URL=http://urban-community-ai:8000/
+      - AI_API_KEY=${AI_API_KEY}
     ports:
-      - "${API_PORT:-5000}:80"
+      - "${API_PORT:-5000}:8080"
     volumes:
       - urban-uploads:/app/wwwroot/uploads
       - urban-temp:/app/temp/uploads
+    networks:
+      - urban-network
+    restart: on-failure
+
+  urban-community-ai:
+    build:
+      context: ../../../ai
+      dockerfile: Dockerfile
+    container_name: urban-community-ai
+    environment:
+      - LLM_PROVIDER=${LLM_PROVIDER:-openai}
+      - AI_API_KEY=${AI_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - DEEPSEEK_MODEL=${DEEPSEEK_MODEL:-deepseek-v4-flash}
+      - DEEPSEEK_BASE_URL=${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/ready', timeout=5)"
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    ports:
+      - "${AI_PORT:-8000}:8000"
     networks:
       - urban-network
     restart: on-failure
