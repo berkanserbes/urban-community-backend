@@ -7,6 +7,8 @@ public sealed record ReportCreatedEvent
     public Guid ReportId { get; init; }
     public string ReportTitle { get; init; } = string.Empty;
     public Guid CreatedByUserId { get; init; }
+    public Guid ProvinceId { get; init; }
+    public Guid DistrictId { get; init; }
     public Guid NeighborhoodId { get; init; }
     public Guid CategoryId { get; init; }
     public string CategoryName { get; init; } = string.Empty;
