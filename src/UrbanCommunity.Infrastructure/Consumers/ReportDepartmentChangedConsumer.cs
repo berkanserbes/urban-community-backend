@@ -4,6 +4,7 @@ using UrbanCommunity.Application.Events;
 using UrbanCommunity.Application.Interfaces;
 using UrbanCommunity.Domain.Entities;
 using UrbanCommunity.Domain.Enums;
+using UrbanCommunity.Infrastructure.Services;
 
 namespace UrbanCommunity.Infrastructure.Consumers;
 
@@ -34,6 +35,10 @@ public sealed class ReportDepartmentChangedConsumer(
                     u.Role == UserRole.Official &&
                     u.DepartmentId == evt.DepartmentId.Value &&
                     u.Id != evt.ReportOwnerId)
+                .WhereJurisdictionMatches(
+                    evt.ProvinceId,
+                    evt.DistrictId,
+                    evt.NeighborhoodId)
                 .Select(u => u.Id)
                 .ToListAsync(consumeContext.CancellationToken);
 
