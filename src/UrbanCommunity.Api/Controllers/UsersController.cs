@@ -4,12 +4,12 @@ using Microsoft.AspNetCore.Mvc;
 using UrbanCommunity.Api.Constants;
 using UrbanCommunity.Application.Features.Users.Commands.ActivateUser;
 using UrbanCommunity.Application.Features.Users.Commands.AdminUpdateUser;
-using UrbanCommunity.Application.Features.Users.Commands.AssignRole;
 using UrbanCommunity.Application.Features.Users.Commands.ChangePassword;
 using UrbanCommunity.Application.Features.Users.Commands.DeactivateUser;
 using UrbanCommunity.Application.Features.Users.Commands.DeleteProfileImage;
 using UrbanCommunity.Application.Features.Users.Commands.UpdateProfile;
 using UrbanCommunity.Application.Features.Users.Commands.UpdateProfileImage;
+using UrbanCommunity.Application.Features.Users.Commands.UpdateUserAccess;
 using UrbanCommunity.Application.Features.Users.Queries.GetCurrentUser;
 using UrbanCommunity.Application.Features.Users.Queries.GetUserById;
 using UrbanCommunity.Application.Features.Users.Queries.GetUsers;
@@ -160,12 +160,17 @@ public class UsersController(IMediator mediator) : ApiController
         return Ok(result);
     }
 
-    /// <summary>Assigns a role to the specified user. Restricted to Admin.</summary>
-    [HttpPut("{id:guid}/role")]
+    /// <summary>Updates a user's role, department, and Official jurisdiction. Restricted to Admin.</summary>
+    [HttpPut("{id:guid}/access")]
     [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> AssignRole(Guid id, [FromBody] AssignRoleRequest request)
+    public async Task<IActionResult> UpdateAccess(Guid id, [FromBody] UpdateUserAccessRequest request)
     {
-        var result = await mediator.Send(new AssignRoleCommand(id, request.Role, request.DepartmentId));
+        var result = await mediator.Send(new UpdateUserAccessCommand(
+            id,
+            request.Role,
+            request.DepartmentId,
+            request.OfficialJurisdictionLevel,
+            request.OfficialJurisdictionId));
 
         if (!result.IsSuccess)
             return BadRequest(result);
@@ -212,4 +217,8 @@ public sealed record AdminUpdateUserRequest(
     string? PhoneNumber,
     Guid? NeighborhoodId);
 
-public sealed record AssignRoleRequest(UserRole Role, Guid? DepartmentId);
+public sealed record UpdateUserAccessRequest(
+    UserRole Role,
+    Guid? DepartmentId,
+    OfficialJurisdictionLevel? OfficialJurisdictionLevel,
+    Guid? OfficialJurisdictionId);

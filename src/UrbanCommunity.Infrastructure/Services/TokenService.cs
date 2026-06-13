@@ -19,14 +19,14 @@ public class TokenService : ITokenService
 
     public string GenerateToken(User user)
     {
-        var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET") 
-            ?? _configuration["JwtSettings:Secret"] 
+        var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET")
+            ?? _configuration["JwtSettings:Secret"]
             ?? throw new InvalidOperationException("JWT Secret is missing!");
-            
-        var jwtIssuer = Environment.GetEnvironmentVariable("JWT_ISSUER") 
+
+        var jwtIssuer = Environment.GetEnvironmentVariable("JWT_ISSUER")
             ?? _configuration["JwtSettings:Issuer"];
-            
-        var jwtAudience = Environment.GetEnvironmentVariable("JWT_AUDIENCE") 
+
+        var jwtAudience = Environment.GetEnvironmentVariable("JWT_AUDIENCE")
             ?? _configuration["JwtSettings:Audience"];
 
         var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret));
@@ -49,6 +49,25 @@ public class TokenService : ITokenService
         if (user.DepartmentId.HasValue)
         {
             claims.Add(new Claim("DepartmentId", user.DepartmentId.Value.ToString()));
+        }
+
+        if (user.Role == Domain.Enums.UserRole.Official &&
+            user.OfficialJurisdictionLevel.HasValue)
+        {
+            claims.Add(new Claim(
+                "OfficialJurisdictionLevel",
+                user.OfficialJurisdictionLevel.Value.ToString()));
+
+            var jurisdictionId = user.OfficialProvinceId ??
+                user.OfficialDistrictId ??
+                user.OfficialNeighborhoodId;
+
+            if (jurisdictionId.HasValue)
+            {
+                claims.Add(new Claim(
+                    "OfficialJurisdictionId",
+                    jurisdictionId.Value.ToString()));
+            }
         }
 
         var tokenDescriptor = new SecurityTokenDescriptor
@@ -84,8 +103,8 @@ public class TokenService : ITokenService
 
     public ClaimsPrincipal GetPrincipalFromExpiredToken(string token)
     {
-        var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET") 
-            ?? _configuration["JwtSettings:Secret"] 
+        var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET")
+            ?? _configuration["JwtSettings:Secret"]
             ?? throw new InvalidOperationException("JWT Secret is missing!");
 
         var tokenValidationParameters = new TokenValidationParameters
@@ -99,7 +118,7 @@ public class TokenService : ITokenService
 
         var tokenHandler = new JwtSecurityTokenHandler();
         var principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out SecurityToken securityToken);
-        
+
         var jwtSecurityToken = securityToken as JwtSecurityToken;
         if (jwtSecurityToken == null || !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
         {
