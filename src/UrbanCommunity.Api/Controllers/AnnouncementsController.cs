@@ -64,7 +64,14 @@ public class AnnouncementsController(IMediator mediator) : ApiController
     [Authorize(Roles = "Admin,Official")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateAnnouncementRequest request, CancellationToken cancellationToken)
     {
-        var result = await mediator.Send(new UpdateAnnouncementCommand(id, request.Title, request.Content, request.ExpiresAt), cancellationToken);
+        var result = await mediator.Send(
+            new UpdateAnnouncementCommand(
+                id,
+                GetCurrentUserId(),
+                request.Title,
+                request.Content,
+                request.ExpiresAt),
+            cancellationToken);
         return Ok(result);
     }
 
@@ -72,7 +79,9 @@ public class AnnouncementsController(IMediator mediator) : ApiController
     [Authorize(Roles = "Admin,Official")]
     public async Task<IActionResult> Deactivate(Guid id, CancellationToken cancellationToken)
     {
-        var result = await mediator.Send(new DeactivateAnnouncementCommand(id), cancellationToken);
+        var result = await mediator.Send(
+            new DeactivateAnnouncementCommand(id, GetCurrentUserId()),
+            cancellationToken);
         return Ok(result);
     }
 
@@ -80,7 +89,9 @@ public class AnnouncementsController(IMediator mediator) : ApiController
     [Authorize(Roles = "Admin,Official")]
     public async Task<IActionResult> Activate(Guid id, [FromBody] ActivateAnnouncementRequest? request, CancellationToken cancellationToken)
     {
-        var result = await mediator.Send(new ActivateAnnouncementCommand(id, request?.ExpiresAt), cancellationToken);
+        var result = await mediator.Send(
+            new ActivateAnnouncementCommand(id, GetCurrentUserId(), request?.ExpiresAt),
+            cancellationToken);
         return Ok(result);
     }
 
@@ -88,7 +99,9 @@ public class AnnouncementsController(IMediator mediator) : ApiController
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
-        var result = await mediator.Send(new DeleteAnnouncementCommand(id), cancellationToken);
+        var result = await mediator.Send(
+            new DeleteAnnouncementCommand(id, GetCurrentUserId()),
+            cancellationToken);
         return Ok(result);
     }
 
@@ -96,7 +109,9 @@ public class AnnouncementsController(IMediator mediator) : ApiController
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> DeleteAll(CancellationToken cancellationToken)
     {
-        var result = await mediator.Send(new DeleteAllAnnouncementsCommand(), cancellationToken);
+        var result = await mediator.Send(
+            new DeleteAllAnnouncementsCommand(GetCurrentUserId()),
+            cancellationToken);
         return Ok(result);
     }
 
@@ -104,7 +119,9 @@ public class AnnouncementsController(IMediator mediator) : ApiController
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> ActivateAll([FromBody] ActivateAllAnnouncementsRequest? request, CancellationToken cancellationToken)
     {
-        var result = await mediator.Send(new ActivateAllAnnouncementsCommand(request?.ExpiresAt), cancellationToken);
+        var result = await mediator.Send(
+            new ActivateAllAnnouncementsCommand(GetCurrentUserId(), request?.ExpiresAt),
+            cancellationToken);
         return Ok(result);
     }
 
@@ -112,7 +129,9 @@ public class AnnouncementsController(IMediator mediator) : ApiController
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> DeactivateAll(CancellationToken cancellationToken)
     {
-        var result = await mediator.Send(new DeactivateAllAnnouncementsCommand(), cancellationToken);
+        var result = await mediator.Send(
+            new DeactivateAllAnnouncementsCommand(GetCurrentUserId()),
+            cancellationToken);
         return Ok(result);
     }
 
