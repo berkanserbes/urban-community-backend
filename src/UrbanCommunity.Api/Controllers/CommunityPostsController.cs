@@ -104,10 +104,15 @@ public class CommunityPostsController(IMediator mediator) : ApiController
     }
 
     [HttpPatch("{id:guid}/status")]
-    [Authorize(Roles = "Admin,Official")]
     public async Task<IActionResult> ChangeStatus(Guid id, [FromBody] ChangeCommunityPostStatusRequest request, CancellationToken cancellationToken)
     {
-        var result = await mediator.Send(new ChangeCommunityPostStatusCommand(id, request.NewStatus), cancellationToken);
+        var result = await mediator.Send(
+            new ChangeCommunityPostStatusCommand(
+                id,
+                GetCurrentUserId(),
+                User.IsInRole("Admin"),
+                request.NewStatus),
+            cancellationToken);
         return Ok(result);
     }
 }

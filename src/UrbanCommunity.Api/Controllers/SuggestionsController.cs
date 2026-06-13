@@ -6,6 +6,7 @@ using UrbanCommunity.Application.Features.Suggestions.Commands.CreateSuggestion;
 using UrbanCommunity.Application.Features.Suggestions.Commands.DeleteSuggestion;
 using UrbanCommunity.Application.Features.Suggestions.Commands.UpdateSuggestion;
 using UrbanCommunity.Application.Features.Suggestions.Queries.GetSuggestionById;
+using UrbanCommunity.Application.Features.Suggestions.Queries.GetAllowedSuggestionStatusTransitions;
 using UrbanCommunity.Application.Features.Suggestions.Queries.GetSuggestions;
 using UrbanCommunity.Domain.Enums;
 
@@ -30,6 +31,18 @@ public class SuggestionsController(IMediator mediator) : ApiController
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
         var result = await mediator.Send(new GetSuggestionByIdQuery(id), cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpGet("{id:guid}/allowed-status-transitions")]
+    [Authorize(Roles = "Admin,Official")]
+    public async Task<IActionResult> GetAllowedStatusTransitions(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(
+            new GetAllowedSuggestionStatusTransitionsQuery(id, GetCurrentUserId()),
+            cancellationToken);
         return Ok(result);
     }
 
@@ -62,7 +75,12 @@ public class SuggestionsController(IMediator mediator) : ApiController
     [Authorize(Roles = "Admin,Official")]
     public async Task<IActionResult> ChangeStatus(Guid id, [FromBody] ChangeSuggestionStatusRequest request, CancellationToken cancellationToken)
     {
-        var result = await mediator.Send(new ChangeSuggestionStatusCommand(id, request.NewStatus), cancellationToken);
+        var result = await mediator.Send(
+            new ChangeSuggestionStatusCommand(
+                id,
+                GetCurrentUserId(),
+                request.NewStatus),
+            cancellationToken);
         return Ok(result);
     }
 }
