@@ -23,6 +23,16 @@ public sealed class GetUsersQueryHandler(IApplicationDbContext context)
                 u.IsActive,
                 u.NeighborhoodId,
                 u.DepartmentId,
+                u.Department != null ? u.Department.Name : null,
+                u.OfficialJurisdictionLevel,
+                u.OfficialProvinceId ?? u.OfficialDistrictId ?? u.OfficialNeighborhoodId,
+                u.OfficialJurisdictionLevel == Domain.Enums.OfficialJurisdictionLevel.Province
+                    ? u.OfficialProvince != null ? u.OfficialProvince.Name : null
+                    : u.OfficialJurisdictionLevel == Domain.Enums.OfficialJurisdictionLevel.District
+                        ? u.OfficialDistrict != null ? u.OfficialDistrict.Name : null
+                        : u.OfficialJurisdictionLevel == Domain.Enums.OfficialJurisdictionLevel.Neighborhood
+                            ? u.OfficialNeighborhood != null ? u.OfficialNeighborhood.Name : null
+                            : null,
                 u.Bio,
                 u.ProfileImageUrl,
                 u.CreatedAt))

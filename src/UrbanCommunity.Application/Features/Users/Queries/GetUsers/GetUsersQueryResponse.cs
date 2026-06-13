@@ -11,6 +11,10 @@ public sealed record GetUsersQueryResponse(
     bool IsActive,
     Guid? NeighborhoodId,
     Guid? DepartmentId,
+    string? DepartmentName,
+    OfficialJurisdictionLevel? OfficialJurisdictionLevel,
+    Guid? OfficialJurisdictionId,
+    string? OfficialJurisdictionName,
     string? Bio,
     string? ProfileImageUrl,
     DateTime CreatedAt);

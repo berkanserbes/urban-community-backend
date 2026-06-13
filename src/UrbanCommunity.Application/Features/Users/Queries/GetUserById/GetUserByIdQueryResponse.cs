@@ -13,6 +13,9 @@ public sealed record GetUserByIdQueryResponse(
     string? NeighborhoodName,
     Guid? DepartmentId,
     string? DepartmentName,
+    OfficialJurisdictionLevel? OfficialJurisdictionLevel,
+    Guid? OfficialJurisdictionId,
+    string? OfficialJurisdictionName,
     string? Bio,
     string? ProfileImageUrl,
     DateTime CreatedAt);

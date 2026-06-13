@@ -35,7 +35,17 @@ public sealed class GetUsersByNeighborhoodQueryHandler(IApplicationDbContext con
                 u.Bio,
                 u.ProfileImageUrl,
                 u.NeighborhoodId,
-                u.Neighborhood != null ? u.Neighborhood.Name : null))
+                u.Neighborhood != null ? u.Neighborhood.Name : null,
+                u.DepartmentId,
+                u.OfficialJurisdictionLevel,
+                u.OfficialProvinceId ?? u.OfficialDistrictId ?? u.OfficialNeighborhoodId,
+                u.OfficialJurisdictionLevel == Domain.Enums.OfficialJurisdictionLevel.Province
+                    ? u.OfficialProvince != null ? u.OfficialProvince.Name : null
+                    : u.OfficialJurisdictionLevel == Domain.Enums.OfficialJurisdictionLevel.District
+                        ? u.OfficialDistrict != null ? u.OfficialDistrict.Name : null
+                        : u.OfficialJurisdictionLevel == Domain.Enums.OfficialJurisdictionLevel.Neighborhood
+                            ? u.OfficialNeighborhood != null ? u.OfficialNeighborhood.Name : null
+                            : null))
             .ToListAsync(cancellationToken);
 
         return Result<IReadOnlyList<GetUsersByNeighborhoodQueryResponse>>.Success(users);
