@@ -14,11 +14,18 @@ public sealed class UpdateSuggestionCommentCommandHandler(IApplicationDbContext 
     public async Task<Result<UpdateSuggestionCommentCommandResponse>> Handle(UpdateSuggestionCommentCommand request, CancellationToken cancellationToken)
     {
         var comment = await context.SuggestionComments
+            .Include(item => item.Suggestion)
             .FirstOrDefaultAsync(c => c.Id == request.CommentId, cancellationToken)
             ?? throw new NotFoundException(nameof(SuggestionComment), request.CommentId);
 
         if (comment.UserId != request.RequestingUserId)
             throw new ForbiddenAccessException("Bu yorumu yalnızca sahibi düzenleyebilir.");
+
+        if (!comment.Suggestion.AllowsCommentChanges())
+        {
+            return Result<UpdateSuggestionCommentCommandResponse>.Failure(
+                ["Kapalı önerilerin yorumları düzenlenemez."]);
+        }
 
         comment.Content = request.Content.Trim();
 

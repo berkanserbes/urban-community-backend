@@ -13,14 +13,22 @@ public sealed class AddSuggestionCommentCommandHandler(IApplicationDbContext con
 {
     public async Task<Result<AddSuggestionCommentCommandResponse>> Handle(AddSuggestionCommentCommand request, CancellationToken cancellationToken)
     {
-        if (!await context.Suggestions.AsNoTracking().AnyAsync(suggestion => suggestion.Id == request.SuggestionId, cancellationToken))
-        {
-            throw new NotFoundException(nameof(Suggestion), request.SuggestionId);
-        }
+        var suggestion = await context.Suggestions
+            .AsNoTracking()
+            .FirstOrDefaultAsync(
+                item => item.Id == request.SuggestionId,
+                cancellationToken)
+            ?? throw new NotFoundException(nameof(Suggestion), request.SuggestionId);
 
         if (!await context.Users.AsNoTracking().AnyAsync(user => user.Id == request.UserId && user.IsActive, cancellationToken))
         {
             throw new NotFoundException(nameof(User), request.UserId);
+        }
+
+        if (!suggestion.AllowsCommentChanges())
+        {
+            return Result<AddSuggestionCommentCommandResponse>.Failure(
+                ["Kapalı önerilere yorum eklenemez."]);
         }
 
         var comment = new SuggestionCommentEntity
