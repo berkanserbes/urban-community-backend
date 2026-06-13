@@ -5,6 +5,7 @@ namespace UrbanCommunity.Application.Features.Announcements.Commands.UpdateAnnou
 
 public sealed record UpdateAnnouncementCommand(
     Guid Id,
+    Guid RequestingUserId,
     string Title,
     string Content,
     DateTime? ExpiresAt) : IRequest<Result<UpdateAnnouncementCommandResponse>>;

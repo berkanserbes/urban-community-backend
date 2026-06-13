@@ -7,7 +7,9 @@ using UrbanCommunity.Domain.Entities;
 
 namespace UrbanCommunity.Application.Features.Announcements.Commands.UpdateAnnouncement;
 
-public sealed class UpdateAnnouncementCommandHandler(IApplicationDbContext context)
+public sealed class UpdateAnnouncementCommandHandler(
+    IApplicationDbContext context,
+    IAnnouncementAuthorizationService authorizationService)
     : IRequestHandler<UpdateAnnouncementCommand, Result<UpdateAnnouncementCommandResponse>>
 {
     public async Task<Result<UpdateAnnouncementCommandResponse>> Handle(UpdateAnnouncementCommand request, CancellationToken cancellationToken)
@@ -15,6 +17,11 @@ public sealed class UpdateAnnouncementCommandHandler(IApplicationDbContext conte
         var announcement = await context.Announcements
             .FirstOrDefaultAsync(a => a.Id == request.Id, cancellationToken)
             ?? throw new NotFoundException(nameof(Announcement), request.Id);
+
+        await authorizationService.EnsureCanManageAsync(
+            request.RequestingUserId,
+            announcement,
+            cancellationToken);
 
         announcement.Title = request.Title.Trim();
         announcement.Content = request.Content.Trim();

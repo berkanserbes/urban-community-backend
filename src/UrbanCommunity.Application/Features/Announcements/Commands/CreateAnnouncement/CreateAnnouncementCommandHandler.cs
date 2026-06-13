@@ -12,6 +12,7 @@ namespace UrbanCommunity.Application.Features.Announcements.Commands.CreateAnnou
 
 public sealed class CreateAnnouncementCommandHandler(
     IApplicationDbContext context,
+    IAnnouncementAuthorizationService authorizationService,
     IPublishEndpoint publishEndpoint)
     : IRequestHandler<CreateAnnouncementCommand, Result<CreateAnnouncementCommandResponse>>
 {
@@ -44,6 +45,14 @@ public sealed class CreateAnnouncementCommandHandler(
             if (!neighborhoodExists)
                 throw new NotFoundException(nameof(Neighborhood), request.NeighborhoodId.Value);
         }
+
+        await authorizationService.EnsureCanCreateAsync(
+            request.UserId,
+            request.Scope,
+            request.ProvinceId,
+            request.DistrictId,
+            request.NeighborhoodId,
+            cancellationToken);
 
         var user = await context.Users
             .AsNoTracking()

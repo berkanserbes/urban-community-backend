@@ -7,5 +7,6 @@ public sealed class DeleteAnnouncementCommandValidator : AbstractValidator<Delet
     public DeleteAnnouncementCommandValidator()
     {
         RuleFor(x => x.Id).NotEmpty();
+        RuleFor(x => x.RequestingUserId).NotEmpty();
     }
 }

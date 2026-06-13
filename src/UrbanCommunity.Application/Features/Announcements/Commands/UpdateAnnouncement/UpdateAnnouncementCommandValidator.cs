@@ -7,6 +7,7 @@ public sealed class UpdateAnnouncementCommandValidator : AbstractValidator<Updat
     public UpdateAnnouncementCommandValidator()
     {
         RuleFor(x => x.Id).NotEmpty();
+        RuleFor(x => x.RequestingUserId).NotEmpty();
         RuleFor(x => x.Title)
             .NotEmpty().WithMessage("Başlık boş olamaz.")
             .MaximumLength(200).WithMessage("Başlık en fazla 200 karakter olabilir.");

@@ -7,11 +7,17 @@ using UrbanCommunity.Domain.Entities;
 
 namespace UrbanCommunity.Application.Features.Announcements.Commands.DeleteAnnouncement;
 
-public sealed class DeleteAnnouncementCommandHandler(IApplicationDbContext context)
+public sealed class DeleteAnnouncementCommandHandler(
+    IApplicationDbContext context,
+    IAnnouncementAuthorizationService authorizationService)
     : IRequestHandler<DeleteAnnouncementCommand, Result<DeleteAnnouncementCommandResponse>>
 {
     public async Task<Result<DeleteAnnouncementCommandResponse>> Handle(DeleteAnnouncementCommand request, CancellationToken cancellationToken)
     {
+        await authorizationService.EnsureIsAdminAsync(
+            request.RequestingUserId,
+            cancellationToken);
+
         var announcement = await context.Announcements
             .FirstOrDefaultAsync(a => a.Id == request.Id, cancellationToken)
             ?? throw new NotFoundException(nameof(Announcement), request.Id);

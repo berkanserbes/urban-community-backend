@@ -7,6 +7,8 @@ public sealed class CreateAnnouncementCommandValidator : AbstractValidator<Creat
 {
     public CreateAnnouncementCommandValidator()
     {
+        RuleFor(x => x.UserId).NotEmpty();
+
         RuleFor(x => x.Title)
             .NotEmpty().WithMessage("Başlık boş olamaz.")
             .MaximumLength(200).WithMessage("Başlık en fazla 200 karakter olabilir.");
