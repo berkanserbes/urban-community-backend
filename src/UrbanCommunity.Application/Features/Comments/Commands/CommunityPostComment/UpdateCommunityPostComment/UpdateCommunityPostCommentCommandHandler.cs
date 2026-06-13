@@ -14,11 +14,18 @@ public sealed class UpdateCommunityPostCommentCommandHandler(IApplicationDbConte
     public async Task<Result<UpdateCommunityPostCommentCommandResponse>> Handle(UpdateCommunityPostCommentCommand request, CancellationToken cancellationToken)
     {
         var comment = await context.CommunityPostComments
+            .Include(item => item.CommunityPost)
             .FirstOrDefaultAsync(c => c.Id == request.CommentId, cancellationToken)
             ?? throw new NotFoundException(nameof(CommunityPostComment), request.CommentId);
 
         if (comment.UserId != request.RequestingUserId)
             throw new ForbiddenAccessException("Bu yorumu yalnızca sahibi düzenleyebilir.");
+
+        if (!comment.CommunityPost.AllowsCommentChanges())
+        {
+            return Result<UpdateCommunityPostCommentCommandResponse>.Failure(
+                ["Bu durumdaki topluluk gönderisinin yorumları düzenlenemez."]);
+        }
 
         comment.Content = request.Content.Trim();
 

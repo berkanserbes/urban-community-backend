@@ -14,11 +14,18 @@ public sealed class DeleteCommunityPostCommentCommandHandler(IApplicationDbConte
     public async Task<Result<DeleteCommunityPostCommentCommandResponse>> Handle(DeleteCommunityPostCommentCommand request, CancellationToken cancellationToken)
     {
         var comment = await context.CommunityPostComments
+            .Include(item => item.CommunityPost)
             .FirstOrDefaultAsync(c => c.Id == request.CommentId, cancellationToken)
             ?? throw new NotFoundException(nameof(CommunityPostCommentEntity), request.CommentId);
 
         if (!request.IsAdmin && comment.UserId != request.RequestingUserId)
             throw new ForbiddenAccessException("Bu yorumu yalnızca sahibi veya admin silebilir.");
+
+        if (!comment.CommunityPost.AllowsCommentChanges())
+        {
+            return Result<DeleteCommunityPostCommentCommandResponse>.Failure(
+                ["Bu durumdaki topluluk gönderisinin yorumları silinemez."]);
+        }
 
         context.CommunityPostComments.Remove(comment);
         await context.SaveChangesAsync(cancellationToken);

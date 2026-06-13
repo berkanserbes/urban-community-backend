@@ -26,6 +26,12 @@ public sealed class AddCommunityPostCommentCommandHandler(IApplicationDbContext 
             throw new ForbiddenAccessException("Bu topluluk gönderisine yorum yapma yetkiniz yok.");
         }
 
+        if (!post.AllowsCommentChanges())
+        {
+            return Result<AddCommunityPostCommentCommandResponse>.Failure(
+                ["Bu durumdaki topluluk gönderisine yorum eklenemez."]);
+        }
+
         var comment = new CommunityPostCommentEntity
         {
             CommunityPostId = request.CommunityPostId,
