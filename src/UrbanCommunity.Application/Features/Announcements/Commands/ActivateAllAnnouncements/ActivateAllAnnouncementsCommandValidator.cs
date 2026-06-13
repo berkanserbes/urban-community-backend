@@ -6,6 +6,8 @@ public sealed class ActivateAllAnnouncementsCommandValidator : AbstractValidator
 {
     public ActivateAllAnnouncementsCommandValidator()
     {
+        RuleFor(x => x.RequestingUserId).NotEmpty();
+
         RuleFor(x => x.ExpiresAt)
             .GreaterThan(DateTime.UtcNow).WithMessage("Son geçerlilik tarihi gelecekte olmalıdır.")
             .When(x => x.ExpiresAt.HasValue);

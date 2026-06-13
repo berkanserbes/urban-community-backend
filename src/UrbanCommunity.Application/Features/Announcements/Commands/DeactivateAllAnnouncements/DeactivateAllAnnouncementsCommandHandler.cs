@@ -5,11 +5,17 @@ using UrbanCommunity.Application.Interfaces;
 
 namespace UrbanCommunity.Application.Features.Announcements.Commands.DeactivateAllAnnouncements;
 
-public sealed class DeactivateAllAnnouncementsCommandHandler(IApplicationDbContext context)
+public sealed class DeactivateAllAnnouncementsCommandHandler(
+    IApplicationDbContext context,
+    IAnnouncementAuthorizationService authorizationService)
     : IRequestHandler<DeactivateAllAnnouncementsCommand, Result<DeactivateAllAnnouncementsCommandResponse>>
 {
     public async Task<Result<DeactivateAllAnnouncementsCommandResponse>> Handle(DeactivateAllAnnouncementsCommand request, CancellationToken cancellationToken)
     {
+        await authorizationService.EnsureIsAdminAsync(
+            request.RequestingUserId,
+            cancellationToken);
+
         var announcements = await context.Announcements
             .Where(a => a.IsActive)
             .ToListAsync(cancellationToken);

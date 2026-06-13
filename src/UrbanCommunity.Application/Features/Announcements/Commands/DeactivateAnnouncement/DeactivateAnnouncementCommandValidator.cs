@@ -7,5 +7,6 @@ public sealed class DeactivateAnnouncementCommandValidator : AbstractValidator<D
     public DeactivateAnnouncementCommandValidator()
     {
         RuleFor(x => x.Id).NotEmpty();
+        RuleFor(x => x.RequestingUserId).NotEmpty();
     }
 }

@@ -7,7 +7,9 @@ using UrbanCommunity.Domain.Entities;
 
 namespace UrbanCommunity.Application.Features.Announcements.Commands.ActivateAnnouncement;
 
-public sealed class ActivateAnnouncementCommandHandler(IApplicationDbContext context)
+public sealed class ActivateAnnouncementCommandHandler(
+    IApplicationDbContext context,
+    IAnnouncementAuthorizationService authorizationService)
     : IRequestHandler<ActivateAnnouncementCommand, Result<ActivateAnnouncementCommandResponse>>
 {
     public async Task<Result<ActivateAnnouncementCommandResponse>> Handle(ActivateAnnouncementCommand request, CancellationToken cancellationToken)
@@ -15,6 +17,11 @@ public sealed class ActivateAnnouncementCommandHandler(IApplicationDbContext con
         var announcement = await context.Announcements
             .FirstOrDefaultAsync(a => a.Id == request.Id, cancellationToken)
             ?? throw new NotFoundException(nameof(Announcement), request.Id);
+
+        await authorizationService.EnsureCanManageAsync(
+            request.RequestingUserId,
+            announcement,
+            cancellationToken);
 
         if (announcement.IsActive)
             return Result<ActivateAnnouncementCommandResponse>.Failure(["Duyuru zaten aktif."]);

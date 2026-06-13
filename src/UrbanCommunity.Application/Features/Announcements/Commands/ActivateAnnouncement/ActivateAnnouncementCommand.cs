@@ -5,4 +5,5 @@ namespace UrbanCommunity.Application.Features.Announcements.Commands.ActivateAnn
 
 public sealed record ActivateAnnouncementCommand(
     Guid Id,
+    Guid RequestingUserId,
     DateTime? ExpiresAt = null) : IRequest<Result<ActivateAnnouncementCommandResponse>>;

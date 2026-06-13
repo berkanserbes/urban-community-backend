@@ -3,4 +3,5 @@ using UrbanCommunity.Application.Common.Models;
 
 namespace UrbanCommunity.Application.Features.Announcements.Commands.DeactivateAllAnnouncements;
 
-public sealed record DeactivateAllAnnouncementsCommand : IRequest<Result<DeactivateAllAnnouncementsCommandResponse>>;
+public sealed record DeactivateAllAnnouncementsCommand(Guid RequestingUserId)
+    : IRequest<Result<DeactivateAllAnnouncementsCommandResponse>>;

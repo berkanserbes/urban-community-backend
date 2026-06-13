@@ -3,4 +3,5 @@ using UrbanCommunity.Application.Common.Models;
 
 namespace UrbanCommunity.Application.Features.Announcements.Commands.DeleteAllAnnouncements;
 
-public sealed record DeleteAllAnnouncementsCommand : IRequest<Result<DeleteAllAnnouncementsCommandResponse>>;
+public sealed record DeleteAllAnnouncementsCommand(Guid RequestingUserId)
+    : IRequest<Result<DeleteAllAnnouncementsCommandResponse>>;
