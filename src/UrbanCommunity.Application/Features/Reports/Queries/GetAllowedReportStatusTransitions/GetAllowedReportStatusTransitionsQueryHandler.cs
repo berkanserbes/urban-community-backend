@@ -7,12 +7,20 @@ using UrbanCommunity.Domain.Entities;
 
 namespace UrbanCommunity.Application.Features.Reports.Queries.GetAllowedReportStatusTransitions;
 
-public sealed class GetAllowedReportStatusTransitionsQueryHandler(IApplicationDbContext context)
+public sealed class GetAllowedReportStatusTransitionsQueryHandler(
+    IApplicationDbContext context,
+    IReportManagementAuthorizationService authorizationService)
     : IRequestHandler<GetAllowedReportStatusTransitionsQuery, Result<GetAllowedReportStatusTransitionsQueryResponse>>
 {
     public async Task<Result<GetAllowedReportStatusTransitionsQueryResponse>> Handle(
         GetAllowedReportStatusTransitionsQuery request, CancellationToken cancellationToken)
     {
+        await authorizationService.EnsureCanManageAsync(
+            request.ReportId,
+            request.RequestingUserId,
+            request.IsAdmin,
+            cancellationToken);
+
         var report = await context.Reports
             .AsNoTracking()
             .FirstOrDefaultAsync(r => r.Id == request.ReportId, cancellationToken)

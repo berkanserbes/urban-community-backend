@@ -9,5 +9,8 @@ public sealed class GetAllowedReportStatusTransitionsQueryValidator
     {
         RuleFor(x => x.ReportId)
             .NotEmpty().WithMessage("Rapor kimliği gereklidir.");
+
+        RuleFor(x => x.RequestingUserId)
+            .NotEmpty().WithMessage("İşlemi yapan kullanıcı kimliği gereklidir.");
     }
 }
