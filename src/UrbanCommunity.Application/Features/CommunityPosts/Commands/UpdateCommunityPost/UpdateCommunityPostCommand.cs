@@ -9,5 +9,5 @@ public sealed record UpdateCommunityPostCommand(
     Guid RequestingUserId,
     string Title,
     string Content,
-    IReadOnlyList<Guid>? DeleteMediaIds = null,
+    IReadOnlyList<Guid>? KeepMediaIds = null,
     IReadOnlyList<IFormFile>? Media = null) : IRequest<Result<UpdateCommunityPostCommandResponse>>;
