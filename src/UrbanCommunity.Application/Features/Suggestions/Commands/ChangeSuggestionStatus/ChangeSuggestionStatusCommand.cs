@@ -6,4 +6,5 @@ namespace UrbanCommunity.Application.Features.Suggestions.Commands.ChangeSuggest
 
 public sealed record ChangeSuggestionStatusCommand(
     Guid SuggestionId,
+    Guid RequestingUserId,
     SuggestionStatus NewStatus) : IRequest<Result<ChangeSuggestionStatusCommandResponse>>;
