@@ -33,6 +33,8 @@ public sealed class GetAllowedCommunityPostStatusTransitionsQueryHandler(IApplic
             new GetAllowedCommunityPostStatusTransitionsQueryResponse(
                 post.Id,
                 post.Status,
-                post.GetAllowedNextStatuses().ToList()));
+                request.IsAdmin || post.UserId == request.RequestingUserId
+                    ? post.GetAllowedNextStatuses().ToList()
+                    : []));
     }
 }

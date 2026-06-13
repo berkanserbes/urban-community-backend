@@ -40,7 +40,9 @@ public sealed class GetCommunityPostByIdQueryHandler(IApplicationDbContext conte
             .AsNoTracking()
             .CountAsync(comment => comment.CommunityPostId == post.Id, cancellationToken);
 
-        var allowedNextStatuses = post.GetAllowedNextStatuses().ToList();
+        var allowedNextStatuses = request.IsAdmin || post.UserId == request.RequestingUserId
+            ? post.GetAllowedNextStatuses().ToList()
+            : [];
 
         return Result<GetCommunityPostByIdQueryResponse>.Success(new GetCommunityPostByIdQueryResponse(
             post.Id,
