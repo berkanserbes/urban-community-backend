@@ -64,6 +64,11 @@ public class CommunityPost : BaseEntity
         return newStatus == Status || GetAllowedNextStatuses().Contains(newStatus);
     }
 
+    public bool AllowsCommentChanges()
+    {
+        return Status is CommunityPostStatus.Active or CommunityPostStatus.Reserved;
+    }
+
     public void ChangeStatus(CommunityPostStatus newStatus)
     {
         if (newStatus == Status)

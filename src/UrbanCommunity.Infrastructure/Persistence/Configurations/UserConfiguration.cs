@@ -12,8 +12,21 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.ToTable(table =>
         {
             table.HasCheckConstraint(
-                "CK_AspNetUsers_DepartmentId_Requires_OfficialRole",
-                $"\"DepartmentId\" IS NULL OR \"Role\" = {(int)UserRole.Official}");
+                "CK_AspNetUsers_OfficialAccess",
+                $"(" +
+                $"\"Role\" = {(int)UserRole.Official} AND " +
+                "\"DepartmentId\" IS NOT NULL AND " +
+                "((\"OfficialJurisdictionLevel\" = 1 AND \"OfficialProvinceId\" IS NOT NULL AND \"OfficialDistrictId\" IS NULL AND \"OfficialNeighborhoodId\" IS NULL) OR " +
+                "(\"OfficialJurisdictionLevel\" = 2 AND \"OfficialProvinceId\" IS NULL AND \"OfficialDistrictId\" IS NOT NULL AND \"OfficialNeighborhoodId\" IS NULL) OR " +
+                "(\"OfficialJurisdictionLevel\" = 3 AND \"OfficialProvinceId\" IS NULL AND \"OfficialDistrictId\" IS NULL AND \"OfficialNeighborhoodId\" IS NOT NULL))" +
+                ") OR (" +
+                $"\"Role\" <> {(int)UserRole.Official} AND " +
+                "\"DepartmentId\" IS NULL AND " +
+                "\"OfficialJurisdictionLevel\" IS NULL AND " +
+                "\"OfficialProvinceId\" IS NULL AND " +
+                "\"OfficialDistrictId\" IS NULL AND " +
+                "\"OfficialNeighborhoodId\" IS NULL" +
+                ")");
         });
 
         builder.Property(u => u.FirstName)
@@ -32,7 +45,22 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.HasOne(u => u.Department)
             .WithMany(d => d.Officials)
             .HasForeignKey(u => u.DepartmentId)
-            .OnDelete(DeleteBehavior.SetNull);
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(u => u.OfficialProvince)
+            .WithMany()
+            .HasForeignKey(u => u.OfficialProvinceId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(u => u.OfficialDistrict)
+            .WithMany()
+            .HasForeignKey(u => u.OfficialDistrictId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(u => u.OfficialNeighborhood)
+            .WithMany()
+            .HasForeignKey(u => u.OfficialNeighborhoodId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.Property(u => u.ProfileImageUrl)
             .HasMaxLength(500);
@@ -52,5 +80,8 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.HasIndex(u => u.IsActive);
         builder.HasIndex(u => u.DepartmentId);
         builder.HasIndex(u => u.NeighborhoodId);
+        builder.HasIndex(u => new { u.OfficialJurisdictionLevel, u.OfficialProvinceId });
+        builder.HasIndex(u => new { u.OfficialJurisdictionLevel, u.OfficialDistrictId });
+        builder.HasIndex(u => new { u.OfficialJurisdictionLevel, u.OfficialNeighborhoodId });
     }
 }

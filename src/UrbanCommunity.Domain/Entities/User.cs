@@ -12,14 +12,25 @@ public class User : IdentityUser<Guid>
 
     [NotMapped]
     public string FullName => string.Join(' ', new[] { FirstName, LastName }.Where(name => !string.IsNullOrWhiteSpace(name)));
-    
+
     public UserRole Role { get; set; } = UserRole.Citizen;
-    
+
     public Guid? NeighborhoodId { get; set; }
     public Neighborhood? Neighborhood { get; set; }
 
     public Guid? DepartmentId { get; set; }
     public Department? Department { get; set; }
+
+    public OfficialJurisdictionLevel? OfficialJurisdictionLevel { get; set; }
+
+    public Guid? OfficialProvinceId { get; set; }
+    public Province? OfficialProvince { get; set; }
+
+    public Guid? OfficialDistrictId { get; set; }
+    public District? OfficialDistrict { get; set; }
+
+    public Guid? OfficialNeighborhoodId { get; set; }
+    public Neighborhood? OfficialNeighborhood { get; set; }
 
     // Profil Bilgileri
     public string? ProfileImageUrl { get; set; }
@@ -42,32 +53,49 @@ public class User : IdentityUser<Guid>
     public DateTime? UpdatedAt { get; private set; }
 
     public void SetUpdatedAt(DateTime now) => UpdatedAt = now;
-    
+
     public bool IsActive { get; set; } = true;
 
-    public void ChangeRole(UserRole role)
+    public void UpdateAccess(
+        UserRole role,
+        Guid? departmentId = null,
+        OfficialJurisdictionLevel? jurisdictionLevel = null,
+        Guid? jurisdictionId = null)
     {
         Role = role;
 
         if (role != UserRole.Official)
         {
-            DepartmentId = null;
-            Department = null;
+            ClearOfficialAccess();
+            return;
         }
-    }
 
-    public void AssignDepartment(Guid? departmentId)
-    {
-        if (departmentId.HasValue && Role != UserRole.Official)
-        {
-            throw new DomainException("Departman ataması yalnızca Official rolündeki kullanıcılara yapılabilir.");
-        }
+        if (!departmentId.HasValue || !jurisdictionLevel.HasValue || !jurisdictionId.HasValue)
+            throw new DomainException("Official rolü için departman ve yetki alanı zorunludur.");
 
         DepartmentId = departmentId;
+        Department = null;
+        OfficialJurisdictionLevel = jurisdictionLevel;
+        OfficialProvinceId = null;
+        OfficialProvince = null;
+        OfficialDistrictId = null;
+        OfficialDistrict = null;
+        OfficialNeighborhoodId = null;
+        OfficialNeighborhood = null;
 
-        if (!departmentId.HasValue)
+        switch (jurisdictionLevel.Value)
         {
-            Department = null;
+            case UrbanCommunity.Domain.Enums.OfficialJurisdictionLevel.Province:
+                OfficialProvinceId = jurisdictionId;
+                break;
+            case UrbanCommunity.Domain.Enums.OfficialJurisdictionLevel.District:
+                OfficialDistrictId = jurisdictionId;
+                break;
+            case UrbanCommunity.Domain.Enums.OfficialJurisdictionLevel.Neighborhood:
+                OfficialNeighborhoodId = jurisdictionId;
+                break;
+            default:
+                throw new DomainException("Geçersiz Official yetki alanı seviyesi.");
         }
     }
 
@@ -86,6 +114,19 @@ public class User : IdentityUser<Guid>
     public void AssignNeighborhood(Guid? neighborhoodId)
     {
         NeighborhoodId = neighborhoodId;
+    }
+
+    private void ClearOfficialAccess()
+    {
+        DepartmentId = null;
+        Department = null;
+        OfficialJurisdictionLevel = null;
+        OfficialProvinceId = null;
+        OfficialProvince = null;
+        OfficialDistrictId = null;
+        OfficialDistrict = null;
+        OfficialNeighborhoodId = null;
+        OfficialNeighborhood = null;
     }
 
     public void Deactivate()
