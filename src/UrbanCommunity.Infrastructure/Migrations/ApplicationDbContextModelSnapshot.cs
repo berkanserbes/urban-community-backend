@@ -205,15 +205,23 @@ namespace UrbanCommunity.Infrastructure.Migrations
 
                     b.HasIndex("ExpiresAt");
 
+                    b.HasIndex("NeighborhoodId");
+
                     b.HasIndex("ProvinceId");
 
                     b.HasIndex("UserId");
 
-                    b.HasIndex("NeighborhoodId", "IsActive");
+                    b.HasIndex("Scope", "DistrictId", "IsActive");
+
+                    b.HasIndex("Scope", "NeighborhoodId", "IsActive");
+
+                    b.HasIndex("Scope", "ProvinceId", "IsActive");
 
                     b.ToTable("Announcements", t =>
                         {
                             t.HasCheckConstraint("CK_Announcements_ExpiresAt_After_CreatedAt", "\"ExpiresAt\" IS NULL OR \"ExpiresAt\" > \"CreatedAt\"");
+
+                            t.HasCheckConstraint("CK_Announcements_Scope_Location", "(\"Scope\" = 0 AND \"ProvinceId\" IS NULL AND \"DistrictId\" IS NULL AND \"NeighborhoodId\" IS NULL) OR (\"Scope\" = 1 AND \"ProvinceId\" IS NOT NULL AND \"DistrictId\" IS NULL AND \"NeighborhoodId\" IS NULL) OR (\"Scope\" = 2 AND \"DistrictId\" IS NOT NULL AND \"ProvinceId\" IS NULL AND \"NeighborhoodId\" IS NULL) OR (\"Scope\" = 3 AND \"NeighborhoodId\" IS NOT NULL AND \"ProvinceId\" IS NULL AND \"DistrictId\" IS NULL)");
                         });
                 });
 
@@ -457,7 +465,7 @@ namespace UrbanCommunity.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
-                    b.Property<Guid?>("DistrictId")
+                    b.Property<Guid>("DistrictId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("Name")
@@ -957,6 +965,18 @@ namespace UrbanCommunity.Infrastructure.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
 
+                    b.Property<Guid?>("OfficialDistrictId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("OfficialJurisdictionLevel")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("OfficialNeighborhoodId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("OfficialProvinceId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("PasswordHash")
                         .HasColumnType("text");
 
@@ -1001,11 +1021,23 @@ namespace UrbanCommunity.Infrastructure.Migrations
                         .IsUnique()
                         .HasDatabaseName("UserNameIndex");
 
+                    b.HasIndex("OfficialDistrictId");
+
+                    b.HasIndex("OfficialNeighborhoodId");
+
+                    b.HasIndex("OfficialProvinceId");
+
                     b.HasIndex("Role");
+
+                    b.HasIndex("OfficialJurisdictionLevel", "OfficialDistrictId");
+
+                    b.HasIndex("OfficialJurisdictionLevel", "OfficialNeighborhoodId");
+
+                    b.HasIndex("OfficialJurisdictionLevel", "OfficialProvinceId");
 
                     b.ToTable("AspNetUsers", null, t =>
                         {
-                            t.HasCheckConstraint("CK_AspNetUsers_DepartmentId_Requires_OfficialRole", "\"DepartmentId\" IS NULL OR \"Role\" = 2");
+                            t.HasCheckConstraint("CK_AspNetUsers_OfficialAccess", "(\"Role\" = 2 AND \"DepartmentId\" IS NOT NULL AND ((\"OfficialJurisdictionLevel\" = 1 AND \"OfficialProvinceId\" IS NOT NULL AND \"OfficialDistrictId\" IS NULL AND \"OfficialNeighborhoodId\" IS NULL) OR (\"OfficialJurisdictionLevel\" = 2 AND \"OfficialProvinceId\" IS NULL AND \"OfficialDistrictId\" IS NOT NULL AND \"OfficialNeighborhoodId\" IS NULL) OR (\"OfficialJurisdictionLevel\" = 3 AND \"OfficialProvinceId\" IS NULL AND \"OfficialDistrictId\" IS NULL AND \"OfficialNeighborhoodId\" IS NOT NULL))) OR (\"Role\" <> 2 AND \"DepartmentId\" IS NULL AND \"OfficialJurisdictionLevel\" IS NULL AND \"OfficialProvinceId\" IS NULL AND \"OfficialDistrictId\" IS NULL AND \"OfficialNeighborhoodId\" IS NULL)");
                         });
                 });
 
@@ -1143,16 +1175,18 @@ namespace UrbanCommunity.Infrastructure.Migrations
                 {
                     b.HasOne("UrbanCommunity.Domain.Entities.District", "District")
                         .WithMany()
-                        .HasForeignKey("DistrictId");
+                        .HasForeignKey("DistrictId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("UrbanCommunity.Domain.Entities.Neighborhood", "Neighborhood")
                         .WithMany("Announcements")
                         .HasForeignKey("NeighborhoodId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("UrbanCommunity.Domain.Entities.Province", "Province")
                         .WithMany()
-                        .HasForeignKey("ProvinceId");
+                        .HasForeignKey("ProvinceId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("UrbanCommunity.Domain.Entities.User", "User")
                         .WithMany("Announcements")
@@ -1246,7 +1280,9 @@ namespace UrbanCommunity.Infrastructure.Migrations
                 {
                     b.HasOne("UrbanCommunity.Domain.Entities.District", "DistrictNavigation")
                         .WithMany("Neighborhoods")
-                        .HasForeignKey("DistrictId");
+                        .HasForeignKey("DistrictId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.Navigation("DistrictNavigation");
                 });
@@ -1398,16 +1434,37 @@ namespace UrbanCommunity.Infrastructure.Migrations
                     b.HasOne("UrbanCommunity.Domain.Entities.Department", "Department")
                         .WithMany("Officials")
                         .HasForeignKey("DepartmentId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("UrbanCommunity.Domain.Entities.Neighborhood", "Neighborhood")
                         .WithMany("Users")
                         .HasForeignKey("NeighborhoodId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("UrbanCommunity.Domain.Entities.District", "OfficialDistrict")
+                        .WithMany()
+                        .HasForeignKey("OfficialDistrictId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("UrbanCommunity.Domain.Entities.Neighborhood", "OfficialNeighborhood")
+                        .WithMany()
+                        .HasForeignKey("OfficialNeighborhoodId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("UrbanCommunity.Domain.Entities.Province", "OfficialProvince")
+                        .WithMany()
+                        .HasForeignKey("OfficialProvinceId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Department");
 
                     b.Navigation("Neighborhood");
+
+                    b.Navigation("OfficialDistrict");
+
+                    b.Navigation("OfficialNeighborhood");
+
+                    b.Navigation("OfficialProvince");
                 });
 
             modelBuilder.Entity("UrbanCommunity.Domain.Entities.UserRefreshToken", b =>
