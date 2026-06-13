@@ -18,6 +18,12 @@ public sealed class ChangeCommunityPostStatusCommandHandler(IApplicationDbContex
             .FirstOrDefaultAsync(p => p.Id == request.CommunityPostId, cancellationToken)
             ?? throw new NotFoundException(nameof(CommunityPost), request.CommunityPostId);
 
+        if (!request.IsAdmin && post.UserId != request.RequestingUserId)
+        {
+            throw new ForbiddenAccessException(
+                "Topluluk gönderisinin durumunu yalnızca sahibi veya admin değiştirebilir.");
+        }
+
         if (!post.CanTransitionTo(request.NewStatus))
         {
             var allowed = string.Join(", ", post.GetAllowedNextStatuses());
