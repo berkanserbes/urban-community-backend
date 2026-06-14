@@ -12,16 +12,29 @@ namespace UrbanCommunity.Application.Features.Reports.Commands.ChangeReportStatu
 
 public sealed class ChangeReportStatusCommandHandler(
     IApplicationDbContext context,
+    IReportManagementAuthorizationService authorizationService,
     IPublishEndpoint publishEndpoint)
     : IRequestHandler<ChangeReportStatusCommand, Result<ChangeReportStatusCommandResponse>>
 {
     public async Task<Result<ChangeReportStatusCommandResponse>> Handle(ChangeReportStatusCommand request, CancellationToken cancellationToken)
     {
+        await authorizationService.EnsureCanManageAsync(
+            request.ReportId,
+            request.RequestingUserId,
+            request.IsAdmin,
+            cancellationToken);
+
         var report = await context.Reports
             .FirstOrDefaultAsync(r => r.Id == request.ReportId, cancellationToken)
             ?? throw new NotFoundException(nameof(Report), request.ReportId);
 
         var oldStatus = report.Status;
+
+        if (oldStatus == ReportStatus.AiReview)
+        {
+            return Result<ChangeReportStatusCommandResponse>.Failure(
+                ["AI incelemesi devam eden raporun durumu manuel olarak değiştirilemez."]);
+        }
 
         if (oldStatus == request.NewStatus)
             return Result<ChangeReportStatusCommandResponse>.Failure(["Rapor zaten belirtilen durumda."]);
@@ -32,7 +45,7 @@ public sealed class ChangeReportStatusCommandHandler(
                 ["Rapor işleme alınmadan önce bir birime atanmalıdır."]);
         }
 
-        report.ChangeStatus(request.NewStatus, request.ChangedByUserId, request.Note);
+        report.ChangeStatus(request.NewStatus, request.RequestingUserId, request.Note);
 
         await context.SaveChangesAsync(cancellationToken);
 

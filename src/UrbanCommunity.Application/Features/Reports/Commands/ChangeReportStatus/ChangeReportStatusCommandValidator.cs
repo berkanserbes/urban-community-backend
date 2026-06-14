@@ -17,7 +17,7 @@ public sealed class ChangeReportStatusCommandValidator : AbstractValidator<Chang
             .NotEqual(ReportStatus.AiReview)
             .WithMessage("AI inceleme durumu yalnızca sistem tarafından başlatılabilir.");
 
-        RuleFor(x => x.ChangedByUserId)
+        RuleFor(x => x.RequestingUserId)
             .NotEmpty().WithMessage("İşlemi yapan kullanıcı kimliği gereklidir.");
 
         RuleFor(x => x.Note)

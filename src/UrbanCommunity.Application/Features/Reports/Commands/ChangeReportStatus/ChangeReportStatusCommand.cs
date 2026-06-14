@@ -7,5 +7,6 @@ namespace UrbanCommunity.Application.Features.Reports.Commands.ChangeReportStatu
 public sealed record ChangeReportStatusCommand(
     Guid ReportId,
     ReportStatus NewStatus,
-    Guid? ChangedByUserId = null,
+    Guid RequestingUserId,
+    bool IsAdmin,
     string? Note = null) : IRequest<Result<ChangeReportStatusCommandResponse>>;
