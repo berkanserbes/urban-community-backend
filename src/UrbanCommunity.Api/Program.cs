@@ -1,3 +1,4 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using MassTransit;
@@ -70,7 +71,13 @@ try
         .AddEntityFrameworkStores<ApplicationDbContext>()
         .AddDefaultTokenProviders();
 
-    builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    builder.Services.AddAuthentication(options =>
+        {
+            options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultForbidScheme = JwtBearerDefaults.AuthenticationScheme;
+        })
         .AddJwtBearer(options =>
         {
             options.TokenValidationParameters = CreateTokenValidationParameters();
@@ -231,14 +238,30 @@ static JwtBearerEvents CreateJwtBearerEvents()
             var validator = context.HttpContext.RequestServices
                 .GetRequiredService<IAccessTokenSessionValidator>();
 
-            var isValid = await validator.IsValidAsync(
-                sessionClaims,
-                context.HttpContext.RequestAborted);
-
-            if (!isValid)
+            if (!await validator.IsValidAsync(
+                    sessionClaims,
+                    context.HttpContext.RequestAborted))
             {
                 context.Fail("Access token session is no longer valid.");
             }
+        },
+        OnAuthenticationFailed = context =>
+        {
+            Log.Warning(
+                context.Exception,
+                "JWT authentication failed for {Path}.",
+                context.Request.Path);
+
+            return Task.CompletedTask;
+        },
+        OnChallenge = context =>
+        {
+            Log.Warning(
+                "JWT challenge for {Path}. AuthenticateFailure: {AuthenticateFailure}",
+                context.Request.Path,
+                context.AuthenticateFailure?.Message);
+
+            return Task.CompletedTask;
         }
     };
 }
@@ -249,26 +272,38 @@ static bool TryGetAccessTokenSessionClaims(
 {
     sessionClaims = null!;
 
-    var userIdValue = principal?.FindFirstValue(ClaimTypes.NameIdentifier);
-    var roleValue = principal?.FindFirstValue(ClaimTypes.Role);
+    var userIdValue =
+        principal?.FindFirstValue(ClaimTypes.NameIdentifier) ??
+        principal?.FindFirstValue(JwtRegisteredClaimNames.Sub);
+    var roleValue =
+        principal?.FindFirstValue(ClaimTypes.Role) ??
+        principal?.FindFirstValue("role");
 
     if (!Guid.TryParse(userIdValue, out var userId) ||
-        !Enum.TryParse<UserRole>(roleValue, ignoreCase: false, out var role) ||
+        !Enum.TryParse<UserRole>(roleValue, ignoreCase: true, out var role) ||
         !Enum.IsDefined(role))
     {
         return false;
     }
 
-    var departmentId = TryGetOptionalGuidClaim(principal!, "DepartmentId", out var departmentClaimValid);
-    var jurisdictionId = TryGetOptionalGuidClaim(principal!, "OfficialJurisdictionId", out var jurisdictionClaimValid);
-    var jurisdictionLevelValue = principal!.FindFirstValue("OfficialJurisdictionLevel");
+    var departmentId = TryGetOptionalGuidClaim(
+        principal!,
+        "DepartmentId",
+        out var departmentClaimValid);
+    var jurisdictionId = TryGetOptionalGuidClaim(
+        principal!,
+        "OfficialJurisdictionId",
+        out var jurisdictionClaimValid);
+    var jurisdictionLevelValue =
+        principal!.FindFirstValue("OfficialJurisdictionLevel");
 
     OfficialJurisdictionLevel? jurisdictionLevel = null;
-    var jurisdictionLevelValid = string.IsNullOrWhiteSpace(jurisdictionLevelValue) ||
+    var jurisdictionLevelValid =
+        string.IsNullOrWhiteSpace(jurisdictionLevelValue) ||
         (Enum.TryParse<OfficialJurisdictionLevel>(
-            jurisdictionLevelValue,
-            ignoreCase: false,
-            out var parsedJurisdictionLevel) &&
+             jurisdictionLevelValue,
+             ignoreCase: true,
+             out var parsedJurisdictionLevel) &&
          Enum.IsDefined(parsedJurisdictionLevel) &&
          (jurisdictionLevel = parsedJurisdictionLevel).HasValue);
 
@@ -279,10 +314,18 @@ static bool TryGetAccessTokenSessionClaims(
         return false;
     }
 
-    if (role == UserRole.Official &&
-        (!departmentId.HasValue ||
-         !jurisdictionLevel.HasValue ||
-         !jurisdictionId.HasValue))
+    var officialClaimsAreComplete =
+        departmentId.HasValue &&
+        jurisdictionLevel.HasValue &&
+        jurisdictionId.HasValue;
+    var nonOfficialClaimsAreEmpty =
+        !departmentId.HasValue &&
+        !jurisdictionLevel.HasValue &&
+        !jurisdictionId.HasValue;
+
+    if (role == UserRole.Official
+            ? !officialClaimsAreComplete
+            : !nonOfficialClaimsAreEmpty)
     {
         return false;
     }
@@ -327,7 +370,13 @@ static async Task MigrateAndSeedDatabaseAsync(WebApplication app)
 
         var loggerFactory = services.GetRequiredService<ILoggerFactory>();
         var env = services.GetRequiredService<IWebHostEnvironment>();
-        await ApplicationDbContextSeed.SeedAsync(context, loggerFactory, env.ContentRootPath);
+        var userManager = services.GetRequiredService<UserManager<User>>();
+        await ApplicationDbContextSeed.SeedAsync(
+            context,
+            userManager,
+            loggerFactory,
+            env.ContentRootPath,
+            seedDevelopmentAdmin: env.IsDevelopment());
 
         Log.Information("Migrationlar ve seed işlemleri başarıyla tamamlandı.");
     }
