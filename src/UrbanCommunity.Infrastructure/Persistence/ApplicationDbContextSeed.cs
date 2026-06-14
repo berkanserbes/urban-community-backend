@@ -15,6 +15,8 @@ public class ApplicationDbContextSeed
 
         try
         {
+            await SeedReportCategoriesAsync(context);
+
             if (await context.Provinces.AnyAsync())
                 return;
 
@@ -94,5 +96,53 @@ public class ApplicationDbContextSeed
         {
             logger.LogError(ex, "An error occurred during database seeding.");
         }
+    }
+
+    private static async Task SeedReportCategoriesAsync(ApplicationDbContext context)
+    {
+        var defaultCategories = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Yol ve Kaldırım"] = "Yol yüzeyi, çukur, kaldırım, bordür ve yaya yolu sorunları.",
+            ["Aydınlatma ve Elektrik"] = "Sokak aydınlatması ve elektrik kaynaklı sorunlar.",
+            ["Su ve Kanalizasyon"] = "Su kesintisi, kaçak, kanalizasyon ve drenaj sorunları.",
+            ["Temizlik ve Atık"] = "Çöp, geri dönüşüm ve çevre temizliği sorunları.",
+            ["Park ve Yeşil Alan"] = "Park, oyun alanı, ağaç ve yeşil alan sorunları.",
+            ["Trafik ve Sinyalizasyon"] = "Trafik işaretleri, yol çizgileri ve sinyalizasyon sorunları.",
+            ["Gürültü ve Hava Kirliliği"] = "Gürültü, kötü koku, duman ve hava kirliliği sorunları.",
+            ["Sokak Hayvanları ve Veterinerlik"] = "Sahipsiz veya yaralı hayvanlar, barınak ve veterinerlik hizmetleri.",
+            ["Erişilebilirlik"] = "Engelli rampası, hissedilebilir yüzey ve erişimi engelleyen geçiş sorunları.",
+            ["Toplu Taşıma"] = "Otobüs durağı, güzergâh, sefer ve toplu taşıma hizmeti sorunları.",
+            ["Otopark ve Hatalı Park"] = "Otopark alanları, engelli park yerleri, kaldırım üstü park ve geçişi engelleyen araçlarla ilgili sorunlar.",
+            ["Yapı ve İmar Güvenliği"] = "Tehlikeli veya terk edilmiş yapılar, izinsiz inşaat ve yapı güvenliği riskleri.",
+            ["Haşere ve İlaçlama"] = "Sivrisinek, fare, böcek ve ilaçlama talepleri.",
+            ["Kar ve Buzlanma"] = "Kar küreme, yol ve kaldırım tuzlama, buzlanma ve kar nedeniyle kapanan ulaşım yolları.",
+            ["Afet ve Acil Riskler"] = "Sel, heyelan, yangın, çökme ve devrilme riski taşıyan acil durumlar.",
+            ["Diğer"] = "Diğer kategorilere uymayan veya sınıflandırılamayan sorunlar."
+        };
+
+        var existingCategories = await context.ReportCategories.ToListAsync();
+
+        foreach (var (name, description) in defaultCategories)
+        {
+            var existingCategory = existingCategories.FirstOrDefault(category =>
+                string.Equals(category.Name, name, StringComparison.OrdinalIgnoreCase));
+
+            if (existingCategory is not null)
+            {
+                existingCategory.Description = description;
+                continue;
+            }
+
+            var category = new ReportCategory
+            {
+                Name = name,
+                Description = description
+            };
+
+            context.ReportCategories.Add(category);
+            existingCategories.Add(category);
+        }
+
+        await context.SaveChangesAsync();
     }
 }

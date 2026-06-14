@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Text;
 using MassTransit;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -11,6 +12,7 @@ using UrbanCommunity.Api.Hubs;
 using UrbanCommunity.Application;
 using UrbanCommunity.Application.Interfaces;
 using UrbanCommunity.Domain.Entities;
+using UrbanCommunity.Domain.Enums;
 using UrbanCommunity.Infrastructure;
 using UrbanCommunity.Infrastructure.Consumers;
 using UrbanCommunity.Infrastructure.Persistence;
@@ -28,9 +30,11 @@ try
     builder.WebHost.ConfigureKestrelLimits();
 
     var envFile = builder.Environment.IsDevelopment() ? ".env.development" : ".env";
-    DotNetEnv.Env.Load(envFile);
+    if (File.Exists(envFile))
+        DotNetEnv.Env.Load(envFile);
 
-    var dbConnectionString = Environment.GetEnvironmentVariable("DB_CONNECTION_STRING");
+    ValidateRequiredConfiguration(builder.Environment);
+    var dbConnectionString = GetRequiredEnvironmentVariable("DB_CONNECTION_STRING");
 
     builder.Host.UseSerilog((context, services, config) =>
     {
@@ -76,9 +80,20 @@ try
 
     builder.Services.AddCors(options =>
     {
+        var allowedOrigins = builder.Configuration
+            .GetSection("Cors:AllowedOrigins")
+            .GetChildren()
+            .Select(origin => origin.Value)
+            .Where(origin => !string.IsNullOrWhiteSpace(origin))
+            .Cast<string>()
+            .ToArray();
+
+        if (allowedOrigins.Length == 0)
+            throw new InvalidOperationException("At least one CORS allowed origin must be configured.");
+
         options.AddPolicy("MobilePolicy", policy =>
         {
-            policy.AllowAnyOrigin()
+            policy.WithOrigins(allowedOrigins)
                 .AllowAnyMethod()
                 .AllowAnyHeader();
         });
@@ -88,9 +103,13 @@ try
     {
         x.SetKebabCaseEndpointNameFormatter();
 
+        x.AddConsumer<
+            ReportAiReviewRequestedConsumer,
+            ReportAiReviewRequestedConsumerDefinition>();
+        x.AddConsumer<ReportAiReviewFaultConsumer>();
         x.AddConsumer<ReportCreatedConsumer>();
         x.AddConsumer<ReportStatusChangedConsumer>();
-        x.AddConsumer<DepartmentAssignedConsumer>();
+        x.AddConsumer<ReportDepartmentChangedConsumer>();
         x.AddConsumer<FileUploadConsumer>();
         x.AddConsumer<AnnouncementPublishedConsumer>();
 
@@ -141,6 +160,7 @@ try
 catch (Exception ex)
 {
     Log.Fatal(ex, "Uygulama beklenmedik bir hata nedeniyle sonlandı.");
+    Environment.ExitCode = 1;
 }
 finally
 {
@@ -165,9 +185,9 @@ static Dictionary<string, ColumnWriterBase> CreateSerilogColumnWriters()
 
 static TokenValidationParameters CreateTokenValidationParameters()
 {
-    var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET") ?? "super-secret-key-that-should-be-changed";
-    var jwtIssuer = Environment.GetEnvironmentVariable("JWT_ISSUER") ?? "UrbanCommunity";
-    var jwtAudience = Environment.GetEnvironmentVariable("JWT_AUDIENCE") ?? "UrbanCommunityApp";
+    var jwtSecret = GetRequiredEnvironmentVariable("JWT_SECRET");
+    var jwtIssuer = GetRequiredEnvironmentVariable("JWT_ISSUER");
+    var jwtAudience = GetRequiredEnvironmentVariable("JWT_AUDIENCE");
 
     return new TokenValidationParameters
     {
@@ -197,8 +217,100 @@ static JwtBearerEvents CreateJwtBearerEvents()
             }
 
             return Task.CompletedTask;
+        },
+        OnTokenValidated = async context =>
+        {
+            if (!TryGetAccessTokenSessionClaims(
+                    context.Principal,
+                    out var sessionClaims))
+            {
+                context.Fail("Access token session claims are invalid.");
+                return;
+            }
+
+            var validator = context.HttpContext.RequestServices
+                .GetRequiredService<IAccessTokenSessionValidator>();
+
+            var isValid = await validator.IsValidAsync(
+                sessionClaims,
+                context.HttpContext.RequestAborted);
+
+            if (!isValid)
+            {
+                context.Fail("Access token session is no longer valid.");
+            }
         }
     };
+}
+
+static bool TryGetAccessTokenSessionClaims(
+    ClaimsPrincipal? principal,
+    out AccessTokenSessionClaims sessionClaims)
+{
+    sessionClaims = null!;
+
+    var userIdValue = principal?.FindFirstValue(ClaimTypes.NameIdentifier);
+    var roleValue = principal?.FindFirstValue(ClaimTypes.Role);
+
+    if (!Guid.TryParse(userIdValue, out var userId) ||
+        !Enum.TryParse<UserRole>(roleValue, ignoreCase: false, out var role) ||
+        !Enum.IsDefined(role))
+    {
+        return false;
+    }
+
+    var departmentId = TryGetOptionalGuidClaim(principal!, "DepartmentId", out var departmentClaimValid);
+    var jurisdictionId = TryGetOptionalGuidClaim(principal!, "OfficialJurisdictionId", out var jurisdictionClaimValid);
+    var jurisdictionLevelValue = principal!.FindFirstValue("OfficialJurisdictionLevel");
+
+    OfficialJurisdictionLevel? jurisdictionLevel = null;
+    var jurisdictionLevelValid = string.IsNullOrWhiteSpace(jurisdictionLevelValue) ||
+        (Enum.TryParse<OfficialJurisdictionLevel>(
+            jurisdictionLevelValue,
+            ignoreCase: false,
+            out var parsedJurisdictionLevel) &&
+         Enum.IsDefined(parsedJurisdictionLevel) &&
+         (jurisdictionLevel = parsedJurisdictionLevel).HasValue);
+
+    if (!departmentClaimValid ||
+        !jurisdictionClaimValid ||
+        !jurisdictionLevelValid)
+    {
+        return false;
+    }
+
+    if (role == UserRole.Official &&
+        (!departmentId.HasValue ||
+         !jurisdictionLevel.HasValue ||
+         !jurisdictionId.HasValue))
+    {
+        return false;
+    }
+
+    sessionClaims = new AccessTokenSessionClaims(
+        userId,
+        role,
+        departmentId,
+        jurisdictionLevel,
+        jurisdictionId);
+
+    return true;
+}
+
+static Guid? TryGetOptionalGuidClaim(
+    ClaimsPrincipal principal,
+    string claimType,
+    out bool isValid)
+{
+    var value = principal.FindFirstValue(claimType);
+    if (string.IsNullOrWhiteSpace(value))
+    {
+        isValid = true;
+        return null;
+    }
+
+    isValid = Guid.TryParse(value, out var parsed);
+    return isValid ? parsed : null;
 }
 
 static async Task MigrateAndSeedDatabaseAsync(WebApplication app)
@@ -223,5 +335,44 @@ static async Task MigrateAndSeedDatabaseAsync(WebApplication app)
     {
         var logger = services.GetRequiredService<ILogger<Program>>();
         logger.LogError(ex, "An error occurred during database migration or seeding.");
+        throw;
     }
+}
+
+static void ValidateRequiredConfiguration(IHostEnvironment environment)
+{
+    var jwtSecret = GetRequiredEnvironmentVariable("JWT_SECRET");
+    if (Encoding.UTF8.GetByteCount(jwtSecret) < 32)
+        throw new InvalidOperationException("JWT_SECRET must be at least 32 bytes.");
+
+    GetRequiredEnvironmentVariable("DB_CONNECTION_STRING");
+    GetRequiredEnvironmentVariable("JWT_ISSUER");
+    GetRequiredEnvironmentVariable("JWT_AUDIENCE");
+    GetRequiredPositiveIntEnvironmentVariable("JWT_ACCESS_TOKEN_EXPIRY_MINUTES");
+    GetRequiredPositiveIntEnvironmentVariable("JWT_REFRESH_TOKEN_EXPIRY_DAYS");
+    GetRequiredEnvironmentVariable("AI_SERVICE_BASE_URL");
+    GetRequiredEnvironmentVariable("AI_API_KEY");
+
+    if (!environment.IsDevelopment())
+    {
+        GetRequiredEnvironmentVariable("RABBIT_MQ_HOST");
+        GetRequiredEnvironmentVariable("RABBIT_MQ_USER");
+        GetRequiredEnvironmentVariable("RABBIT_MQ_PASS");
+    }
+}
+
+static string GetRequiredEnvironmentVariable(string key)
+{
+    var value = Environment.GetEnvironmentVariable(key);
+    return string.IsNullOrWhiteSpace(value)
+        ? throw new InvalidOperationException($"{key} environment variable is required.")
+        : value;
+}
+
+static int GetRequiredPositiveIntEnvironmentVariable(string key)
+{
+    var value = GetRequiredEnvironmentVariable(key);
+    return int.TryParse(value, out var parsed) && parsed > 0
+        ? parsed
+        : throw new InvalidOperationException($"{key} must be a positive integer.");
 }
