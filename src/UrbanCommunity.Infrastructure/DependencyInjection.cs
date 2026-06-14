@@ -2,6 +2,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using UrbanCommunity.Application.Interfaces;
 using UrbanCommunity.Infrastructure.Services;
+using UrbanCommunity.Infrastructure.Services.Ai;
 
 namespace UrbanCommunity.Infrastructure;
 
@@ -10,8 +11,34 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<ITokenService, TokenService>();
+        services.AddScoped<IAccessTokenSessionValidator, AccessTokenSessionValidator>();
+        services.AddScoped<IRefreshTokenRevocationService, RefreshTokenRevocationService>();
+        services.AddScoped<ISuggestionVoteService, SuggestionVoteService>();
+        services.AddScoped<IReportManagementAuthorizationService, ReportManagementAuthorizationService>();
+        services.AddScoped<IAnnouncementAuthorizationService, AnnouncementAuthorizationService>();
+        services.AddAiServices();
         services.AddFileServices();
         services.AddCaching(configuration);
+
+        return services;
+    }
+
+    private static IServiceCollection AddAiServices(this IServiceCollection services)
+    {
+        services.AddHttpClient<IAiApiClient, AiApiClient>(client =>
+        {
+            var baseUrl = Environment.GetEnvironmentVariable("AI_SERVICE_BASE_URL") ?? "http://localhost:8000/";
+            client.BaseAddress = new Uri(baseUrl.EndsWith('/') ? baseUrl : $"{baseUrl}/");
+            client.Timeout = TimeSpan.FromSeconds(45);
+
+            var apiKey = Environment.GetEnvironmentVariable("AI_API_KEY");
+            if (!string.IsNullOrWhiteSpace(apiKey))
+                client.DefaultRequestHeaders.Add("X-Api-Key", apiKey);
+        });
+
+        services.AddScoped<IReportCategorizationService, ReportCategorizationService>();
+        services.AddScoped<IReportPriorityService, ReportPriorityService>();
+        services.AddScoped<IReportSimilarityService, ReportSimilarityService>();
 
         return services;
     }
@@ -40,15 +67,15 @@ public static class DependencyInjection
         if (useRedisCache)
         {
             var redisConnectionString = configuration.GetConnectionString("Redis") ?? "localhost:6379";
-            services.AddSingleton<StackExchange.Redis.IConnectionMultiplexer>(sp => 
+            services.AddSingleton<StackExchange.Redis.IConnectionMultiplexer>(sp =>
                 StackExchange.Redis.ConnectionMultiplexer.Connect(redisConnectionString));
-                
+
             services.AddStackExchangeRedisCache(options =>
             {
                 options.Configuration = redisConnectionString;
                 options.InstanceName = "UrbanCommunity_";
             });
-            
+
             services.AddSingleton<ICacheService, RedisCacheService>();
         }
         else

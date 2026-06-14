@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.OpenApi;
@@ -13,6 +14,7 @@ namespace UrbanCommunity.Api.Extensions;
 public static class ServiceCollectionExtensions
 {
     private const string OpenApiDocumentName = "v1";
+    private const string BearerSecuritySchemeName = "Bearer";
 
     public static IServiceCollection AddApiServices(this IServiceCollection services)
     {
@@ -43,6 +45,7 @@ public static class ServiceCollectionExtensions
             options
                 .WithTitle("UrbanCommunity API")
                 .WithTheme(ScalarTheme.Purple)
+                .AddPreferredSecuritySchemes(BearerSecuritySchemeName)
                 .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
         });
 
@@ -68,9 +71,56 @@ public static class ServiceCollectionExtensions
         services.AddOpenApi(OpenApiDocumentName, options =>
         {
             options.AddSchemaTransformer(NormalizeGuidSchemaAsync);
+            options.AddDocumentTransformer(AddBearerSecuritySchemeAsync);
+            options.AddOperationTransformer(AddAuthorizationRequirementAsync);
         });
 
         return services;
+    }
+
+    private static Task AddBearerSecuritySchemeAsync(
+        OpenApiDocument document,
+        OpenApiDocumentTransformerContext context,
+        CancellationToken cancellationToken)
+    {
+        document.Components ??= new OpenApiComponents();
+        document.Components.SecuritySchemes ??=
+            new Dictionary<string, IOpenApiSecurityScheme>();
+        document.Components.SecuritySchemes[BearerSecuritySchemeName] =
+            new OpenApiSecurityScheme
+            {
+                Type = SecuritySchemeType.Http,
+                Scheme = "bearer",
+                BearerFormat = "JWT",
+                In = ParameterLocation.Header,
+                Description = "JWT access token. Enter only the token value without the 'Bearer' prefix."
+            };
+
+        return Task.CompletedTask;
+    }
+
+    private static Task AddAuthorizationRequirementAsync(
+        OpenApiOperation operation,
+        OpenApiOperationTransformerContext context,
+        CancellationToken cancellationToken)
+    {
+        var metadata = context.Description.ActionDescriptor.EndpointMetadata;
+
+        if (metadata.OfType<IAllowAnonymous>().Any() ||
+            !metadata.OfType<IAuthorizeData>().Any())
+        {
+            return Task.CompletedTask;
+        }
+
+        operation.Security ??= [];
+        operation.Security.Add(new OpenApiSecurityRequirement
+        {
+            [new OpenApiSecuritySchemeReference(
+                BearerSecuritySchemeName,
+                context.Document)] = []
+        });
+
+        return Task.CompletedTask;
     }
 
     private static Task NormalizeGuidSchemaAsync(
