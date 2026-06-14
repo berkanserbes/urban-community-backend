@@ -1,58 +1,86 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
+using UrbanCommunity.Application.Interfaces;
+using UrbanCommunity.Application.Realtime;
 
 namespace UrbanCommunity.Api.Hubs;
 
 /// <summary>
-/// SignalR Hub — Anlık bildirimler için.
-/// Client'lar kapsamlarına göre gruplara katılır ve o gruba ait bildirimleri anlık alır.
-/// 
-/// Grup yapısı:
-///   - "all"                    → Tüm kullanıcılar
-///   - "province_{id}"          → İl bazında
-///   - "district_{id}"          → İlçe bazında
-///   - "neighborhood_{id}"      → Mahalle bazında
+/// Assigns authenticated users to notification groups from their current
+/// database location. Clients cannot choose their own location groups.
 /// </summary>
 [Authorize]
-public class NotificationHub : Hub
+public sealed class NotificationHub(
+    IApplicationDbContext context,
+    ILogger<NotificationHub> logger) : Hub
 {
-    public async Task JoinAll()
+    public override async Task OnConnectedAsync()
     {
-        await Groups.AddToGroupAsync(Context.ConnectionId, "all");
+        var userIdClaim = Context.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (!Guid.TryParse(userIdClaim, out var userId))
+        {
+            RejectConnection("SignalR baglantisinda gecerli kullanici kimligi bulunamadi.");
+            return;
+        }
+
+        var location = await context.Users
+            .AsNoTracking()
+            .Where(user => user.Id == userId && user.IsActive)
+            .Select(user => new UserLocation(
+                user.NeighborhoodId,
+                user.Neighborhood != null
+                    ? user.Neighborhood.DistrictId
+                    : null,
+                user.Neighborhood != null
+                    ? user.Neighborhood.DistrictNavigation.ProvinceId
+                    : null))
+            .SingleOrDefaultAsync(Context.ConnectionAborted);
+
+        if (location is null)
+        {
+            RejectConnection("SignalR baglantisi icin aktif kullanici kaydi bulunamadi.", userId);
+            return;
+        }
+
+        var groupNames = new List<string>
+        {
+            NotificationGroupNames.All
+        };
+
+        if (location.NeighborhoodId.HasValue &&
+            location.DistrictId.HasValue &&
+            location.ProvinceId.HasValue)
+        {
+            groupNames.Add(NotificationGroupNames.Province(location.ProvinceId.Value));
+            groupNames.Add(NotificationGroupNames.District(location.DistrictId.Value));
+            groupNames.Add(NotificationGroupNames.Neighborhood(location.NeighborhoodId.Value));
+        }
+
+        await Task.WhenAll(groupNames.Select(groupName =>
+            Groups.AddToGroupAsync(
+                Context.ConnectionId,
+                groupName,
+                Context.ConnectionAborted)));
+
+        await base.OnConnectedAsync();
     }
 
-    public async Task LeaveAll()
+    private void RejectConnection(string message, Guid? userId = null)
     {
-        await Groups.RemoveFromGroupAsync(Context.ConnectionId, "all");
+        logger.LogWarning(
+            "{Message} UserId: {UserId}, ConnectionId: {ConnectionId}",
+            message,
+            userId,
+            Context.ConnectionId);
+
+        Context.Abort();
     }
 
-    public async Task JoinProvince(string provinceId)
-    {
-        await Groups.AddToGroupAsync(Context.ConnectionId, $"province_{provinceId}");
-    }
-
-    public async Task LeaveProvince(string provinceId)
-    {
-        await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"province_{provinceId}");
-    }
-
-    public async Task JoinDistrict(string districtId)
-    {
-        await Groups.AddToGroupAsync(Context.ConnectionId, $"district_{districtId}");
-    }
-
-    public async Task LeaveDistrict(string districtId)
-    {
-        await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"district_{districtId}");
-    }
-
-    public async Task JoinNeighborhood(string neighborhoodId)
-    {
-        await Groups.AddToGroupAsync(Context.ConnectionId, $"neighborhood_{neighborhoodId}");
-    }
-
-    public async Task LeaveNeighborhood(string neighborhoodId)
-    {
-        await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"neighborhood_{neighborhoodId}");
-    }
+    private sealed record UserLocation(
+        Guid? NeighborhoodId,
+        Guid? DistrictId,
+        Guid? ProvinceId);
 }
