@@ -4,11 +4,12 @@ using UrbanCommunity.Application.Events;
 using UrbanCommunity.Application.Interfaces;
 using UrbanCommunity.Domain.Entities;
 using UrbanCommunity.Domain.Enums;
+using UrbanCommunity.Infrastructure.Services;
 
 namespace UrbanCommunity.Infrastructure.Consumers;
 
 /// <summary>
-/// Yeni rapor oluşturulduğunda admin ve yetkililere bildirim gönderir.
+/// Yeni rapor oluşturulduğunda tüm adminlere ve raporun mahallesindeki yetkililere bildirim gönderir.
 /// </summary>
 public sealed class ReportCreatedConsumer(
     IApplicationDbContext context,
@@ -18,11 +19,30 @@ public sealed class ReportCreatedConsumer(
     {
         var evt = consumeContext.Message;
 
-        // Admin ve Official rolündeki kullanıcıları bul
-        var recipientIds = await context.Users
-            .Where(u => u.IsActive && (u.Role == UserRole.Admin || u.Role == UserRole.Official))
+        var adminIds = await context.Users
+            .AsNoTracking()
+            .Where(u =>
+                u.IsActive &&
+                u.Role == UserRole.Admin)
             .Select(u => u.Id)
             .ToListAsync(consumeContext.CancellationToken);
+
+        var officialIds = await context.Users
+            .AsNoTracking()
+            .Where(user =>
+                user.IsActive &&
+                user.Role == UserRole.Official)
+            .WhereJurisdictionMatches(
+                evt.ProvinceId,
+                evt.DistrictId,
+                evt.NeighborhoodId)
+            .Select(user => user.Id)
+            .ToListAsync(consumeContext.CancellationToken);
+
+        var recipientIds = adminIds
+            .Concat(officialIds)
+            .Distinct()
+            .ToList();
 
         var notifications = recipientIds.Select(userId => new Notification
         {
@@ -40,23 +60,25 @@ public sealed class ReportCreatedConsumer(
             await context.SaveChangesAsync(consumeContext.CancellationToken);
         }
 
-        // SignalR ile mahalle grubuna anlık push
-        await notificationService.SendToGroupAsync(
-            $"neighborhood_{evt.NeighborhoodId}",
-            "NewReport",
-            new
-            {
-                reportId = evt.ReportId,
-                title = evt.ReportTitle,
-                categoryId = evt.CategoryId,
-                categoryName = evt.CategoryName,
-                categoryAssignedByAi = evt.CategoryAssignedByAi,
-                aiCategoryConfidence = evt.AiCategoryConfidence,
-                priority = evt.Priority,
-                priorityAssignedByAi = evt.PriorityAssignedByAi,
-                aiPriorityScore = evt.AiPriorityScore,
-                createdAt = evt.CreatedAt
-            },
-            consumeContext.CancellationToken);
+        var realtimePayload = new
+        {
+            reportId = evt.ReportId,
+            title = evt.ReportTitle,
+            categoryId = evt.CategoryId,
+            categoryName = evt.CategoryName,
+            categoryAssignedByAi = evt.CategoryAssignedByAi,
+            aiCategoryConfidence = evt.AiCategoryConfidence,
+            priority = evt.Priority,
+            priorityAssignedByAi = evt.PriorityAssignedByAi,
+            aiPriorityScore = evt.AiPriorityScore,
+            createdAt = evt.CreatedAt
+        };
+
+        await Task.WhenAll(recipientIds.Select(userId =>
+            notificationService.SendToUserAsync(
+                userId.ToString(),
+                "NewReport",
+                realtimePayload,
+                consumeContext.CancellationToken)));
     }
 }

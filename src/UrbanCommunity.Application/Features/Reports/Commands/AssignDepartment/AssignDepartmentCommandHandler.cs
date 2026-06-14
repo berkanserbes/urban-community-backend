@@ -20,6 +20,8 @@ public sealed class AssignDepartmentCommandHandler(
         CancellationToken cancellationToken)
     {
         var report = await context.Reports
+            .Include(candidate => candidate.Neighborhood)
+                .ThenInclude(neighborhood => neighborhood.DistrictNavigation)
             .FirstOrDefaultAsync(r => r.Id == request.ReportId, cancellationToken)
             ?? throw new NotFoundException(nameof(Report), request.ReportId);
 
@@ -71,6 +73,9 @@ public sealed class AssignDepartmentCommandHandler(
             ReportId = report.Id,
             ReportTitle = report.Title,
             ReportOwnerId = report.UserId,
+            ProvinceId = report.Neighborhood.DistrictNavigation.ProvinceId,
+            DistrictId = report.Neighborhood.DistrictId,
+            NeighborhoodId = report.NeighborhoodId,
             DepartmentId = department?.Id,
             DepartmentName = department?.Name,
             ChangedAt = changedAt

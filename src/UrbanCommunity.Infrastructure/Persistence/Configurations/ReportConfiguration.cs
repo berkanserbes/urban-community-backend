@@ -26,6 +26,10 @@ public class ReportConfiguration : BaseEntityConfiguration<Report>
             .IsRequired()
             .HasMaxLength(1000);
 
+        builder.Property(r => r.Location)
+            .HasColumnType("geometry")
+            .IsRequired(false);
+
         builder.Property(r => r.ContentHash)
             .HasMaxLength(256);
 

@@ -23,7 +23,8 @@ public class NeighborhoodConfiguration : BaseEntityConfiguration<Neighborhood>
             .HasMaxLength(50);
 
         builder.Property(n => n.PolygonData)
-            .HasColumnType("geometry");
+            .HasColumnType("geometry")
+            .IsRequired(false);
 
         builder.HasOne(n => n.DistrictNavigation)
             .WithMany(d => d.Neighborhoods)
