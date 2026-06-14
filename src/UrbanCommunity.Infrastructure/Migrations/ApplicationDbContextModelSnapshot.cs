@@ -579,7 +579,6 @@ namespace UrbanCommunity.Infrastructure.Migrations
                         .HasColumnType("character varying(1000)");
 
                     b.Property<Point>("Location")
-                        .IsRequired()
                         .HasColumnType("geometry");
 
                     b.Property<Guid>("NeighborhoodId")
