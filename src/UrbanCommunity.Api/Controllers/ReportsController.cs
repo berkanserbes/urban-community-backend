@@ -1,0 +1,208 @@
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using UrbanCommunity.Api.Constants;
+using UrbanCommunity.Application.Features.Reports.Commands.AssignDepartment;
+using UrbanCommunity.Application.Features.Reports.Commands.ChangeReportPriority;
+using UrbanCommunity.Application.Features.Reports.Commands.ChangeReportStatus;
+using UrbanCommunity.Application.Features.Reports.Commands.CreateReport;
+using UrbanCommunity.Application.Features.Reports.Commands.DeleteReport;
+using UrbanCommunity.Application.Features.Reports.Commands.UpdateReport;
+using UrbanCommunity.Application.Features.Reports.Queries.GetAllowedReportStatusTransitions;
+using UrbanCommunity.Application.Features.Reports.Queries.GetManageableReports;
+using UrbanCommunity.Application.Features.Reports.Queries.GetReportById;
+using UrbanCommunity.Application.Features.Reports.Queries.GetReports;
+using UrbanCommunity.Domain.Enums;
+
+namespace UrbanCommunity.Api.Controllers;
+
+[ApiController]
+[Route("api/reports")]
+[Authorize]
+public class ReportsController(IMediator mediator) : ApiController
+{
+    [HttpGet]
+    public async Task<IActionResult> GetAll(
+        [FromQuery] Guid? neighborhoodId,
+        [FromQuery] ReportStatus? status,
+        [FromQuery] Guid? categoryId,
+        [FromQuery] Guid? assignedDepartmentId,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new GetReportsQuery(neighborhoodId, status, categoryId, assignedDepartmentId), cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpGet("mine")]
+    public async Task<IActionResult> GetMine(
+        [FromQuery] ReportStatus? status,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(
+            new GetReportsQuery(Status: status, UserId: GetCurrentUserId()),
+            cancellationToken);
+
+        return Ok(result);
+    }
+
+    [HttpGet("manageable")]
+    [Authorize(Roles = "Admin,Official")]
+    public async Task<IActionResult> GetManageable(
+        [FromQuery] Guid? neighborhoodId,
+        [FromQuery] ReportStatus? status,
+        [FromQuery] Guid? categoryId,
+        [FromQuery] Guid? assignedDepartmentId,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(
+            new GetManageableReportsQuery(
+                GetCurrentUserId(),
+                User.IsInRole("Admin"),
+                neighborhoodId,
+                status,
+                categoryId,
+                assignedDepartmentId),
+            cancellationToken);
+
+        return Ok(result);
+    }
+
+    [HttpGet("{id:guid}")]
+    public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new GetReportByIdQuery(id), cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpGet("{id:guid}/allowed-status-transitions")]
+    [Authorize(Roles = "Admin,Official")]
+    public async Task<IActionResult> GetAllowedStatusTransitions(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(
+            new GetAllowedReportStatusTransitionsQuery(
+                id,
+                GetCurrentUserId(),
+                User.IsInRole("Admin")),
+            cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPost]
+    [RequestSizeLimit(ApiConstants.MaxReportUploadSize)]
+    public async Task<IActionResult> Create([FromForm] CreateReportRequest request, CancellationToken cancellationToken)
+    {
+        var command = new CreateReportCommand(
+            request.Title,
+            request.Description,
+            request.Latitude,
+            request.Longitude,
+            request.SuggestedCategoryId,
+            request.NeighborhoodId,
+            GetCurrentUserId(),
+            request.Media);
+
+        var result = await mediator.Send(command, cancellationToken);
+        return CreatedAtAction(nameof(GetById), new { id = result.Data?.Id }, result);
+    }
+
+    [HttpPut("{id:guid}")]
+    [RequestSizeLimit(ApiConstants.MaxReportUploadSize)]
+    public async Task<IActionResult> Update(
+        Guid id,
+        [FromForm] UpdateReportRequest request,
+        CancellationToken cancellationToken)
+    {
+        var command = new UpdateReportCommand(
+            id,
+            GetCurrentUserId(),
+            request.Title,
+            request.Description,
+            request.Latitude,
+            request.Longitude,
+            request.SuggestedCategoryId,
+            request.NeighborhoodId,
+            request.DeleteMediaIds,
+            request.Media);
+
+        var result = await mediator.Send(command, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    {
+        var command = new DeleteReportCommand(id, GetCurrentUserId(), User.IsInRole("Admin"));
+        var result = await mediator.Send(command, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPatch("{id:guid}/status")]
+    [Authorize(Roles = "Admin,Official")]
+    public async Task<IActionResult> ChangeStatus(Guid id, [FromBody] ChangeReportStatusRequest request, CancellationToken cancellationToken)
+    {
+        var command = new ChangeReportStatusCommand(
+            id,
+            request.NewStatus,
+            GetCurrentUserId(),
+            User.IsInRole("Admin"),
+            request.Note);
+        var result = await mediator.Send(command, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPatch("{id:guid}/assign-department")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> AssignDepartment(Guid id, [FromBody] AssignDepartmentRequest request, CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(
+            new AssignDepartmentCommand(id, request.DepartmentId, GetCurrentUserId()),
+            cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPatch("{id:guid}/priority")]
+    [Authorize(Roles = "Admin,Official")]
+    public async Task<IActionResult> ChangePriority(
+        Guid id,
+        [FromBody] ChangeReportPriorityRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(
+            new ChangeReportPriorityCommand(
+                id,
+                request.Priority,
+                GetCurrentUserId(),
+                User.IsInRole("Admin")),
+            cancellationToken);
+
+        return Ok(result);
+    }
+
+    public sealed class CreateReportRequest
+    {
+        public string Title { get; init; } = string.Empty;
+        public string Description { get; init; } = string.Empty;
+        public double? Latitude { get; init; }
+        public double? Longitude { get; init; }
+        public Guid? SuggestedCategoryId { get; init; }
+        public Guid NeighborhoodId { get; init; }
+        public IReadOnlyList<IFormFile>? Media { get; init; }
+    }
+
+    public sealed class UpdateReportRequest
+    {
+        public string Title { get; init; } = string.Empty;
+        public string Description { get; init; } = string.Empty;
+        public double? Latitude { get; init; }
+        public double? Longitude { get; init; }
+        public Guid? SuggestedCategoryId { get; init; }
+        public Guid NeighborhoodId { get; init; }
+        public IReadOnlyList<Guid>? DeleteMediaIds { get; init; }
+        public IReadOnlyList<IFormFile>? Media { get; init; }
+    }
+
+    public sealed record ChangeReportStatusRequest(ReportStatus NewStatus, string? Note);
+    public sealed record ChangeReportPriorityRequest(ReportPriority Priority);
+    public sealed record AssignDepartmentRequest(Guid? DepartmentId);
+}

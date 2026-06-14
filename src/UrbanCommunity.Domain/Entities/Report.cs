@@ -42,8 +42,8 @@ public class Report : BaseEntity
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     
-    // PostGIS Coğrafi Nokta
-    public Point Location { get; set; } = null!;
+    // Optional exact issue location in WGS84 (SRID 4326).
+    public Point? Location { get; set; }
     
     public ReportStatus Status { get; set; } = ReportStatus.AiReview;
     public ReportPriority Priority { get; set; } = ReportPriority.Medium;
