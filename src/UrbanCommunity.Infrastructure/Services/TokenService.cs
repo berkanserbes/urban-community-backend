@@ -46,28 +46,28 @@ public class TokenService : ITokenService
             claims.Add(new Claim("NeighborhoodId", user.NeighborhoodId.Value.ToString()));
         }
 
-        if (user.DepartmentId.HasValue)
+        if (user.Role == Domain.Enums.UserRole.Official)
         {
-            claims.Add(new Claim("DepartmentId", user.DepartmentId.Value.ToString()));
-        }
-
-        if (user.Role == Domain.Enums.UserRole.Official &&
-            user.OfficialJurisdictionLevel.HasValue)
-        {
-            claims.Add(new Claim(
-                "OfficialJurisdictionLevel",
-                user.OfficialJurisdictionLevel.Value.ToString()));
+            if (!user.DepartmentId.HasValue ||
+                !user.OfficialJurisdictionLevel.HasValue)
+            {
+                throw new InvalidOperationException(
+                    "Official users must have department and jurisdiction information.");
+            }
 
             var jurisdictionId = user.OfficialProvinceId ??
                 user.OfficialDistrictId ??
-                user.OfficialNeighborhoodId;
+                user.OfficialNeighborhoodId ??
+                throw new InvalidOperationException(
+                    "Official users must have a jurisdiction identifier.");
 
-            if (jurisdictionId.HasValue)
-            {
-                claims.Add(new Claim(
-                    "OfficialJurisdictionId",
-                    jurisdictionId.Value.ToString()));
-            }
+            claims.Add(new Claim("DepartmentId", user.DepartmentId.Value.ToString()));
+            claims.Add(new Claim(
+                "OfficialJurisdictionLevel",
+                user.OfficialJurisdictionLevel.Value.ToString()));
+            claims.Add(new Claim(
+                "OfficialJurisdictionId",
+                jurisdictionId.ToString()));
         }
 
         var tokenDescriptor = new SecurityTokenDescriptor
