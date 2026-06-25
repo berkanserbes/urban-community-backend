@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using UrbanCommunity.Application.Features.Suggestions.Commands.ChangeSuggestionStatus;
 using UrbanCommunity.Application.Features.Suggestions.Commands.CreateSuggestion;
 using UrbanCommunity.Application.Features.Suggestions.Commands.DeleteSuggestion;
+using UrbanCommunity.Application.Features.Suggestions.Commands.UpdateSuggestionOfficialResponse;
 using UrbanCommunity.Application.Features.Suggestions.Commands.UpdateSuggestion;
 using UrbanCommunity.Application.Features.Suggestions.Queries.GetSuggestionById;
 using UrbanCommunity.Application.Features.Suggestions.Queries.GetAllowedSuggestionStatusTransitions;
@@ -21,9 +22,12 @@ public class SuggestionsController(IMediator mediator) : ApiController
     public async Task<IActionResult> GetAll(
         [FromQuery] SuggestionStatus? status,
         [FromQuery] Guid? userId,
+        [FromQuery] Guid? neighborhoodId,
+        [FromQuery] Guid? districtId,
+        [FromQuery] Guid? provinceId,
         CancellationToken cancellationToken)
     {
-        var result = await mediator.Send(new GetSuggestionsQuery(status, userId), cancellationToken);
+        var result = await mediator.Send(new GetSuggestionsQuery(status, userId, neighborhoodId, districtId, provinceId), cancellationToken);
         return Ok(result);
     }
 
@@ -83,8 +87,25 @@ public class SuggestionsController(IMediator mediator) : ApiController
             cancellationToken);
         return Ok(result);
     }
+
+    [HttpPatch("{id:guid}/official-response")]
+    [Authorize(Roles = "Admin,Official")]
+    public async Task<IActionResult> UpdateOfficialResponse(
+        Guid id,
+        [FromBody] UpdateSuggestionOfficialResponseRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(
+            new UpdateSuggestionOfficialResponseCommand(
+                id,
+                GetCurrentUserId(),
+                request.OfficialResponse),
+            cancellationToken);
+        return Ok(result);
+    }
 }
 
 public sealed record CreateSuggestionRequest(string Title, string Content);
 public sealed record ChangeSuggestionStatusRequest(SuggestionStatus NewStatus);
 public sealed record UpdateSuggestionRequest(string Title, string Content);
+public sealed record UpdateSuggestionOfficialResponseRequest(string? OfficialResponse);
