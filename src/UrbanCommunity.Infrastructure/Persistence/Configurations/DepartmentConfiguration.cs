@@ -17,16 +17,7 @@ public class DepartmentConfiguration : BaseEntityConfiguration<Department>
         builder.Property(d => d.Description)
             .HasMaxLength(500);
 
-        builder.Property(d => d.ContactEmail)
-            .HasMaxLength(100);
-
-        builder.Property(d => d.ContactPhone)
-            .HasMaxLength(20);
-
         builder.HasIndex(d => d.Name)
             .IsUnique();
-
-        builder.Navigation(d => d.Officials)
-            .AutoInclude(false);
     }
 }
