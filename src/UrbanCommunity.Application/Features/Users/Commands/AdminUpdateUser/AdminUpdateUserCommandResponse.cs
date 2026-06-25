@@ -11,6 +11,6 @@ public sealed record AdminUpdateUserCommandResponse(
     UserRole Role,
     bool IsActive,
     Guid? NeighborhoodId,
-    Guid? DepartmentId,
+    Guid? OrganizationDepartmentId,
     string? Bio,
     string? ProfileImageUrl);

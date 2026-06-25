@@ -63,7 +63,7 @@ public sealed class AdminUpdateUserCommandHandler(UserManager<User> userManager,
             user.Role,
             user.IsActive,
             user.NeighborhoodId,
-            user.DepartmentId,
+            user.OrganizationDepartmentId,
             user.Bio,
             user.ProfileImageUrl));
     }
