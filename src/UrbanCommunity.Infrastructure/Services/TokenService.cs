@@ -38,7 +38,8 @@ public class TokenService : ITokenService
             new Claim(JwtRegisteredClaimNames.Email, user.Email!),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new Claim(ClaimTypes.Role, user.Role.ToString())
+            new Claim(ClaimTypes.Role, user.Role.ToString()),
+            new Claim("must_change_password", user.MustChangePassword ? "true" : "false")
         };
 
         if (user.NeighborhoodId.HasValue)
@@ -48,7 +49,7 @@ public class TokenService : ITokenService
 
         if (user.Role == Domain.Enums.UserRole.Official)
         {
-            if (!user.DepartmentId.HasValue ||
+            if (!user.OrganizationDepartmentId.HasValue ||
                 !user.OfficialJurisdictionLevel.HasValue)
             {
                 throw new InvalidOperationException(
@@ -61,7 +62,9 @@ public class TokenService : ITokenService
                 throw new InvalidOperationException(
                     "Official users must have a jurisdiction identifier.");
 
-            claims.Add(new Claim("DepartmentId", user.DepartmentId.Value.ToString()));
+            claims.Add(new Claim(
+                "OrganizationDepartmentId",
+                user.OrganizationDepartmentId.Value.ToString()));
             claims.Add(new Claim(
                 "OfficialJurisdictionLevel",
                 user.OfficialJurisdictionLevel.Value.ToString()));

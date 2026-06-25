@@ -9,4 +9,5 @@ public sealed record RefreshTokenCommandResponse(
     string Email,
     string FirstName,
     string LastName,
-    string Role);
+    string Role,
+    bool MustChangePassword);

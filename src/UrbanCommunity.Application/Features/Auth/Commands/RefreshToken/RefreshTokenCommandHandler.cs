@@ -86,6 +86,7 @@ public sealed class RefreshTokenCommandHandler(
             user.Email!,
             user.FirstName,
             user.LastName,
-            user.Role.ToString()));
+            user.Role.ToString(),
+            user.MustChangePassword));
     }
 }
