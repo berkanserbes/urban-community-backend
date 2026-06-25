@@ -25,6 +25,7 @@ public class Suggestion : BaseEntity
 
     public string Title { get; set; } = string.Empty;
     public string Content { get; set; } = string.Empty;
+    public string? OfficialResponse { get; set; }
     
     public SuggestionStatus Status { get; set; } = SuggestionStatus.Active;
     public int VoteScore { get; set; }

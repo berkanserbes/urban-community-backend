@@ -6,6 +6,7 @@ public sealed record GetSuggestionByIdQueryResponse(
     Guid Id,
     string Title,
     string Content,
+    string? OfficialResponse,
     SuggestionStatus Status,
     int VoteScore,
     Guid UserId,

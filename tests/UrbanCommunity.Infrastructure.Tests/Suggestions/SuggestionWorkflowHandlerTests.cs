@@ -3,6 +3,9 @@ using UrbanCommunity.Application.Common.Exceptions;
 using UrbanCommunity.Application.Features.Comments.Commands.SuggestionComment.AddSuggestionComment;
 using UrbanCommunity.Application.Features.Suggestions.Commands.ChangeSuggestionStatus;
 using UrbanCommunity.Application.Features.Suggestions.Commands.DeleteSuggestion;
+using UrbanCommunity.Application.Features.Suggestions.Commands.UpdateSuggestionOfficialResponse;
+using UrbanCommunity.Application.Features.Suggestions.Queries.GetSuggestionById;
+using UrbanCommunity.Application.Features.Suggestions.Queries.GetSuggestions;
 using UrbanCommunity.Domain.Entities;
 using UrbanCommunity.Domain.Enums;
 using UrbanCommunity.Infrastructure.Persistence;
@@ -94,6 +97,111 @@ public sealed class SuggestionWorkflowHandlerTests
 
         Assert.False(result.IsSuccess);
         Assert.Empty(await context.SuggestionComments.ToListAsync());
+    }
+
+    [Fact]
+    public async Task UpdateOfficialResponse_AllowsOfficialAndTrimsResponse()
+    {
+        await using var context = CreateContext();
+        var actor = CreateUser(UserRole.Official);
+        var suggestion = CreateSuggestion(Guid.NewGuid());
+        suggestion.Status = SuggestionStatus.Closed;
+        context.Users.Add(actor);
+        context.Suggestions.Add(suggestion);
+        await context.SaveChangesAsync();
+
+        var handler = new UpdateSuggestionOfficialResponseCommandHandler(context);
+        var result = await handler.Handle(
+            new UpdateSuggestionOfficialResponseCommand(
+                suggestion.Id,
+                actor.Id,
+                "  Official response  "),
+            CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal("Official response", suggestion.OfficialResponse);
+        Assert.Equal("Official response", result.Data?.OfficialResponse);
+    }
+
+    [Fact]
+    public async Task UpdateOfficialResponse_RejectsCitizenEvenWhenEndpointCommandIsInvokedDirectly()
+    {
+        await using var context = CreateContext();
+        var actor = CreateUser(UserRole.Citizen);
+        var suggestion = CreateSuggestion(Guid.NewGuid());
+        context.Users.Add(actor);
+        context.Suggestions.Add(suggestion);
+        await context.SaveChangesAsync();
+
+        var handler = new UpdateSuggestionOfficialResponseCommandHandler(context);
+
+        await Assert.ThrowsAsync<ForbiddenAccessException>(() => handler.Handle(
+            new UpdateSuggestionOfficialResponseCommand(
+                suggestion.Id,
+                actor.Id,
+                "Official response"),
+            CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task UpdateOfficialResponse_ClearsWhitespaceResponse()
+    {
+        await using var context = CreateContext();
+        var actor = CreateUser(UserRole.Admin);
+        var suggestion = CreateSuggestion(Guid.NewGuid());
+        suggestion.OfficialResponse = "Existing response";
+        context.Users.Add(actor);
+        context.Suggestions.Add(suggestion);
+        await context.SaveChangesAsync();
+
+        var handler = new UpdateSuggestionOfficialResponseCommandHandler(context);
+        var result = await handler.Handle(
+            new UpdateSuggestionOfficialResponseCommand(
+                suggestion.Id,
+                actor.Id,
+                "   "),
+            CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+        Assert.Null(suggestion.OfficialResponse);
+        Assert.Null(result.Data?.OfficialResponse);
+    }
+
+    [Fact]
+    public async Task GetSuggestionById_ReturnsOfficialResponse()
+    {
+        await using var context = CreateContext();
+        var owner = CreateUser(UserRole.Citizen);
+        var suggestion = CreateSuggestion(owner.Id);
+        suggestion.OfficialResponse = "Official response";
+        context.Users.Add(owner);
+        context.Suggestions.Add(suggestion);
+        await context.SaveChangesAsync();
+
+        var handler = new GetSuggestionByIdQueryHandler(context);
+        var result = await handler.Handle(new GetSuggestionByIdQuery(suggestion.Id), CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal("Official response", result.Data?.OfficialResponse);
+    }
+
+    [Fact]
+    public async Task GetSuggestions_ReturnsOfficialResponse()
+    {
+        await using var context = CreateContext();
+        var owner = CreateUser(UserRole.Citizen);
+        var suggestion = CreateSuggestion(owner.Id);
+        suggestion.OfficialResponse = "Official response";
+        context.Users.Add(owner);
+        context.Suggestions.Add(suggestion);
+        await context.SaveChangesAsync();
+
+        var handler = new GetSuggestionsQueryHandler(context);
+        var result = await handler.Handle(new GetSuggestionsQuery(), CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+        Assert.Single(result.Data!);
+        Assert.Equal("Official response", result.Data![0].OfficialResponse);
     }
 
     private static ApplicationDbContext CreateContext()

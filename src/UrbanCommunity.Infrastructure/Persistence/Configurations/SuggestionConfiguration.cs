@@ -18,6 +18,9 @@ public class SuggestionConfiguration : BaseEntityConfiguration<Suggestion>
             .IsRequired()
             .HasMaxLength(2000);
 
+        builder.Property(s => s.OfficialResponse)
+            .HasMaxLength(2000);
+
         builder.Property(s => s.VoteScore)
             .HasDefaultValue(0);
 

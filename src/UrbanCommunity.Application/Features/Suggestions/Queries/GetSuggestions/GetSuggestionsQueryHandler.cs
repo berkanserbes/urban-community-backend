@@ -27,6 +27,7 @@ public sealed class GetSuggestionsQueryHandler(IApplicationDbContext context)
                 s.Id,
                 s.Title,
                 s.Content,
+                s.OfficialResponse,
                 s.Status,
                 s.VoteScore,
                 s.Votes.Count(v => v.IsUpvote),

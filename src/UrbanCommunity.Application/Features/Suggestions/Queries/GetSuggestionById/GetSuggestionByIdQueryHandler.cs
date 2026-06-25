@@ -18,6 +18,7 @@ public sealed class GetSuggestionByIdQueryHandler(IApplicationDbContext context)
                 s.Id,
                 s.Title,
                 s.Content,
+                s.OfficialResponse,
                 s.Status,
                 s.VoteScore,
                 s.UserId,
