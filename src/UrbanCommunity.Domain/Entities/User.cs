@@ -18,8 +18,8 @@ public class User : IdentityUser<Guid>
     public Guid? NeighborhoodId { get; set; }
     public Neighborhood? Neighborhood { get; set; }
 
-    public Guid? DepartmentId { get; set; }
-    public Department? Department { get; set; }
+    public Guid? OrganizationDepartmentId { get; set; }
+    public OrganizationDepartment? OrganizationDepartment { get; set; }
 
     public OfficialJurisdictionLevel? OfficialJurisdictionLevel { get; set; }
 
@@ -55,10 +55,11 @@ public class User : IdentityUser<Guid>
     public void SetUpdatedAt(DateTime now) => UpdatedAt = now;
 
     public bool IsActive { get; set; } = true;
+    public bool MustChangePassword { get; private set; }
 
     public void UpdateAccess(
         UserRole role,
-        Guid? departmentId = null,
+        Guid? organizationDepartmentId = null,
         OfficialJurisdictionLevel? jurisdictionLevel = null,
         Guid? jurisdictionId = null)
     {
@@ -70,11 +71,11 @@ public class User : IdentityUser<Guid>
             return;
         }
 
-        if (!departmentId.HasValue || !jurisdictionLevel.HasValue || !jurisdictionId.HasValue)
+        if (!organizationDepartmentId.HasValue || !jurisdictionLevel.HasValue || !jurisdictionId.HasValue)
             throw new DomainException("Official rolü için departman ve yetki alanı zorunludur.");
 
-        DepartmentId = departmentId;
-        Department = null;
+        OrganizationDepartmentId = organizationDepartmentId;
+        OrganizationDepartment = null;
         OfficialJurisdictionLevel = jurisdictionLevel;
         OfficialProvinceId = null;
         OfficialProvince = null;
@@ -118,8 +119,8 @@ public class User : IdentityUser<Guid>
 
     private void ClearOfficialAccess()
     {
-        DepartmentId = null;
-        Department = null;
+        OrganizationDepartmentId = null;
+        OrganizationDepartment = null;
         OfficialJurisdictionLevel = null;
         OfficialProvinceId = null;
         OfficialProvince = null;
@@ -138,6 +139,10 @@ public class User : IdentityUser<Guid>
     {
         IsActive = true;
     }
+
+    public void RequirePasswordChange() => MustChangePassword = true;
+
+    public void CompleteRequiredPasswordChange() => MustChangePassword = false;
 
     public string GetUserFullName() => string.Join(' ', new[] { FirstName, LastName }.Where(name => !string.IsNullOrWhiteSpace(name)));
 }

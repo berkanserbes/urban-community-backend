@@ -30,8 +30,13 @@ public sealed class GetCurrentUserQueryHandler(IApplicationDbContext context)
                 u.Neighborhood != null && u.Neighborhood.DistrictNavigation != null ? u.Neighborhood.DistrictNavigation.Name : null,
                 u.NeighborhoodId,
                 u.Neighborhood != null ? u.Neighborhood.Name : null,
-                u.DepartmentId,
-                u.Department != null ? u.Department.Name : null,
+                u.OrganizationDepartmentId,
+                u.OrganizationDepartment != null ? u.OrganizationDepartment.OrganizationId : null,
+                u.OrganizationDepartment != null ? u.OrganizationDepartment.Organization.Name : null,
+                u.OrganizationDepartment != null ? u.OrganizationDepartment.DepartmentId : null,
+                u.OrganizationDepartment != null
+                    ? u.OrganizationDepartment.DisplayName ?? u.OrganizationDepartment.Department.Name
+                    : null,
                 u.OfficialJurisdictionLevel,
                 u.OfficialProvinceId ?? u.OfficialDistrictId ?? u.OfficialNeighborhoodId,
                 u.OfficialJurisdictionLevel == Domain.Enums.OfficialJurisdictionLevel.Province
@@ -41,8 +46,41 @@ public sealed class GetCurrentUserQueryHandler(IApplicationDbContext context)
                         : u.OfficialJurisdictionLevel == Domain.Enums.OfficialJurisdictionLevel.Neighborhood
                             ? u.OfficialNeighborhood != null ? u.OfficialNeighborhood.Name : null
                             : null,
+                u.OfficialJurisdictionLevel == Domain.Enums.OfficialJurisdictionLevel.Province
+                    ? u.OfficialProvinceId
+                    : u.OfficialJurisdictionLevel == Domain.Enums.OfficialJurisdictionLevel.District
+                        ? u.OfficialDistrict != null ? u.OfficialDistrict.ProvinceId : null
+                        : u.OfficialJurisdictionLevel == Domain.Enums.OfficialJurisdictionLevel.Neighborhood
+                            ? u.OfficialNeighborhood != null
+                                ? u.OfficialNeighborhood.DistrictNavigation.ProvinceId
+                                : null
+                            : null,
+                u.OfficialJurisdictionLevel == Domain.Enums.OfficialJurisdictionLevel.Province
+                    ? u.OfficialProvince != null ? u.OfficialProvince.Name : null
+                    : u.OfficialJurisdictionLevel == Domain.Enums.OfficialJurisdictionLevel.District
+                        ? u.OfficialDistrict != null && u.OfficialDistrict.Province != null
+                            ? u.OfficialDistrict.Province.Name
+                            : null
+                        : u.OfficialJurisdictionLevel == Domain.Enums.OfficialJurisdictionLevel.Neighborhood
+                            ? u.OfficialNeighborhood != null && u.OfficialNeighborhood.DistrictNavigation != null && u.OfficialNeighborhood.DistrictNavigation.Province != null
+                                ? u.OfficialNeighborhood.DistrictNavigation.Province.Name
+                                : null
+                            : null,
+                u.OfficialJurisdictionLevel == Domain.Enums.OfficialJurisdictionLevel.District
+                    ? u.OfficialDistrictId
+                    : u.OfficialJurisdictionLevel == Domain.Enums.OfficialJurisdictionLevel.Neighborhood
+                        ? u.OfficialNeighborhood != null ? u.OfficialNeighborhood.DistrictId : null
+                        : null,
+                u.OfficialJurisdictionLevel == Domain.Enums.OfficialJurisdictionLevel.District
+                    ? u.OfficialDistrict != null ? u.OfficialDistrict.Name : null
+                    : u.OfficialJurisdictionLevel == Domain.Enums.OfficialJurisdictionLevel.Neighborhood
+                        ? u.OfficialNeighborhood != null && u.OfficialNeighborhood.DistrictNavigation != null
+                            ? u.OfficialNeighborhood.DistrictNavigation.Name
+                            : null
+                        : null,
                 u.Bio,
                 u.ProfileImageUrl,
+                u.MustChangePassword,
                 u.CreatedAt,
                 u.UpdatedAt))
             .FirstOrDefaultAsync(cancellationToken);

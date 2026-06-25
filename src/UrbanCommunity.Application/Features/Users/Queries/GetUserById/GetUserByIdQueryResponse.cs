@@ -11,6 +11,9 @@ public sealed record GetUserByIdQueryResponse(
     bool IsActive,
     Guid? NeighborhoodId,
     string? NeighborhoodName,
+    Guid? OrganizationDepartmentId,
+    Guid? OrganizationId,
+    string? OrganizationName,
     Guid? DepartmentId,
     string? DepartmentName,
     OfficialJurisdictionLevel? OfficialJurisdictionLevel,
@@ -18,4 +21,5 @@ public sealed record GetUserByIdQueryResponse(
     string? OfficialJurisdictionName,
     string? Bio,
     string? ProfileImageUrl,
+    bool MustChangePassword,
     DateTime CreatedAt);

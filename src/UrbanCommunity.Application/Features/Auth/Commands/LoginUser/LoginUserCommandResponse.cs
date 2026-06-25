@@ -10,4 +10,5 @@ public sealed record LoginUserCommandResponse(
     string FirstName,
     string LastName,
     string Role,
-    Guid? NeighborhoodId);
+    Guid? NeighborhoodId,
+    bool MustChangePassword);

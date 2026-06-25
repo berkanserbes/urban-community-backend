@@ -24,8 +24,13 @@ public sealed class GetUserByIdQueryHandler(IApplicationDbContext context)
                 u.IsActive,
                 u.NeighborhoodId,
                 u.Neighborhood != null ? u.Neighborhood.Name : null,
-                u.DepartmentId,
-                u.Department != null ? u.Department.Name : null,
+                u.OrganizationDepartmentId,
+                u.OrganizationDepartment != null ? u.OrganizationDepartment.OrganizationId : null,
+                u.OrganizationDepartment != null ? u.OrganizationDepartment.Organization.Name : null,
+                u.OrganizationDepartment != null ? u.OrganizationDepartment.DepartmentId : null,
+                u.OrganizationDepartment != null
+                    ? u.OrganizationDepartment.DisplayName ?? u.OrganizationDepartment.Department.Name
+                    : null,
                 u.OfficialJurisdictionLevel,
                 u.OfficialProvinceId ?? u.OfficialDistrictId ?? u.OfficialNeighborhoodId,
                 u.OfficialJurisdictionLevel == Domain.Enums.OfficialJurisdictionLevel.Province
@@ -37,6 +42,7 @@ public sealed class GetUserByIdQueryHandler(IApplicationDbContext context)
                             : null,
                 u.Bio,
                 u.ProfileImageUrl,
+                u.MustChangePassword,
                 u.CreatedAt))
             .FirstOrDefaultAsync(cancellationToken);
 

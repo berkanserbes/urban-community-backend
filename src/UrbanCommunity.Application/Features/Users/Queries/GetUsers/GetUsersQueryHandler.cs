@@ -22,8 +22,13 @@ public sealed class GetUsersQueryHandler(IApplicationDbContext context)
                 u.Role,
                 u.IsActive,
                 u.NeighborhoodId,
-                u.DepartmentId,
-                u.Department != null ? u.Department.Name : null,
+                u.OrganizationDepartmentId,
+                u.OrganizationDepartment != null ? u.OrganizationDepartment.OrganizationId : null,
+                u.OrganizationDepartment != null ? u.OrganizationDepartment.Organization.Name : null,
+                u.OrganizationDepartment != null ? u.OrganizationDepartment.DepartmentId : null,
+                u.OrganizationDepartment != null
+                    ? u.OrganizationDepartment.DisplayName ?? u.OrganizationDepartment.Department.Name
+                    : null,
                 u.OfficialJurisdictionLevel,
                 u.OfficialProvinceId ?? u.OfficialDistrictId ?? u.OfficialNeighborhoodId,
                 u.OfficialJurisdictionLevel == Domain.Enums.OfficialJurisdictionLevel.Province
@@ -35,6 +40,7 @@ public sealed class GetUsersQueryHandler(IApplicationDbContext context)
                             : null,
                 u.Bio,
                 u.ProfileImageUrl,
+                u.MustChangePassword,
                 u.CreatedAt))
             .ToListAsync(cancellationToken);
 

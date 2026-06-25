@@ -15,13 +15,13 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
                 "CK_AspNetUsers_OfficialAccess",
                 $"(" +
                 $"\"Role\" = {(int)UserRole.Official} AND " +
-                "\"DepartmentId\" IS NOT NULL AND " +
+                "\"OrganizationDepartmentId\" IS NOT NULL AND " +
                 "((\"OfficialJurisdictionLevel\" = 1 AND \"OfficialProvinceId\" IS NOT NULL AND \"OfficialDistrictId\" IS NULL AND \"OfficialNeighborhoodId\" IS NULL) OR " +
                 "(\"OfficialJurisdictionLevel\" = 2 AND \"OfficialProvinceId\" IS NULL AND \"OfficialDistrictId\" IS NOT NULL AND \"OfficialNeighborhoodId\" IS NULL) OR " +
                 "(\"OfficialJurisdictionLevel\" = 3 AND \"OfficialProvinceId\" IS NULL AND \"OfficialDistrictId\" IS NULL AND \"OfficialNeighborhoodId\" IS NOT NULL))" +
                 ") OR (" +
                 $"\"Role\" <> {(int)UserRole.Official} AND " +
-                "\"DepartmentId\" IS NULL AND " +
+                "\"OrganizationDepartmentId\" IS NULL AND " +
                 "\"OfficialJurisdictionLevel\" IS NULL AND " +
                 "\"OfficialProvinceId\" IS NULL AND " +
                 "\"OfficialDistrictId\" IS NULL AND " +
@@ -42,9 +42,9 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             .HasForeignKey(u => u.NeighborhoodId)
             .OnDelete(DeleteBehavior.SetNull);
 
-        builder.HasOne(u => u.Department)
+        builder.HasOne(u => u.OrganizationDepartment)
             .WithMany(d => d.Officials)
-            .HasForeignKey(u => u.DepartmentId)
+            .HasForeignKey(u => u.OrganizationDepartmentId)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(u => u.OfficialProvince)
@@ -71,6 +71,9 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.IsActive)
             .HasDefaultValue(true);
 
+        builder.Property(u => u.MustChangePassword)
+            .HasDefaultValue(false);
+
         builder.Property(u => u.CreatedAt)
             .IsRequired();
 
@@ -78,7 +81,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
 
         builder.HasIndex(u => u.Role);
         builder.HasIndex(u => u.IsActive);
-        builder.HasIndex(u => u.DepartmentId);
+        builder.HasIndex(u => u.OrganizationDepartmentId);
         builder.HasIndex(u => u.NeighborhoodId);
         builder.HasIndex(u => new { u.OfficialJurisdictionLevel, u.OfficialProvinceId });
         builder.HasIndex(u => new { u.OfficialJurisdictionLevel, u.OfficialDistrictId });

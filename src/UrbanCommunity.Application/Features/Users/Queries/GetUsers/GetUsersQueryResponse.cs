@@ -10,6 +10,9 @@ public sealed record GetUsersQueryResponse(
     UserRole Role,
     bool IsActive,
     Guid? NeighborhoodId,
+    Guid? OrganizationDepartmentId,
+    Guid? OrganizationId,
+    string? OrganizationName,
     Guid? DepartmentId,
     string? DepartmentName,
     OfficialJurisdictionLevel? OfficialJurisdictionLevel,
@@ -17,4 +20,5 @@ public sealed record GetUsersQueryResponse(
     string? OfficialJurisdictionName,
     string? Bio,
     string? ProfileImageUrl,
+    bool MustChangePassword,
     DateTime CreatedAt);
