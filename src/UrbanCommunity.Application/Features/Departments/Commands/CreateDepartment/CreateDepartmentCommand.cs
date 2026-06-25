@@ -5,6 +5,4 @@ namespace UrbanCommunity.Application.Features.Departments.Commands.CreateDepartm
 
 public sealed record CreateDepartmentCommand(
     string Name,
-    string? Description,
-    string? ContactEmail,
-    string? ContactPhone) : IRequest<Result<CreateDepartmentCommandResponse>>;
+    string? Description) : IRequest<Result<CreateDepartmentCommandResponse>>;

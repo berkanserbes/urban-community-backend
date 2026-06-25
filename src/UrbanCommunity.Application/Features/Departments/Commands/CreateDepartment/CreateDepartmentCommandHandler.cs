@@ -24,15 +24,13 @@ public sealed class CreateDepartmentCommandHandler(IApplicationDbContext context
         var department = new Department
         {
             Name = request.Name.Trim(),
-            Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
-            ContactEmail = string.IsNullOrWhiteSpace(request.ContactEmail) ? null : request.ContactEmail.Trim(),
-            ContactPhone = string.IsNullOrWhiteSpace(request.ContactPhone) ? null : request.ContactPhone.Trim()
+            Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim()
         };
 
         context.Departments.Add(department);
         await context.SaveChangesAsync(cancellationToken);
 
         return Result<CreateDepartmentCommandResponse>.Success(new CreateDepartmentCommandResponse(
-            department.Id, department.Name, department.Description, department.ContactEmail, department.ContactPhone));
+            department.Id, department.Name, department.Description));
     }
 }
