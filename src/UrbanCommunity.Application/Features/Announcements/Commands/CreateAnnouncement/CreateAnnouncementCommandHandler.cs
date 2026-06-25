@@ -59,15 +59,19 @@ public sealed class CreateAnnouncementCommandHandler(
             .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken)
             ?? throw new NotFoundException(nameof(User), request.UserId);
 
+        var provinceId = request.Scope == AnnouncementScope.Province ? request.ProvinceId : null;
+        var districtId = request.Scope == AnnouncementScope.District ? request.DistrictId : null;
+        var neighborhoodId = request.Scope == AnnouncementScope.Neighborhood ? request.NeighborhoodId : null;
+
         var announcement = new Announcement
         {
             Title = request.Title.Trim(),
             Content = request.Content.Trim(),
             UserId = request.UserId,
             Scope = request.Scope,
-            ProvinceId = request.ProvinceId,
-            DistrictId = request.DistrictId,
-            NeighborhoodId = request.NeighborhoodId,
+            ProvinceId = provinceId,
+            DistrictId = districtId,
+            NeighborhoodId = neighborhoodId,
             ExpiresAt = request.ExpiresAt
         };
 
