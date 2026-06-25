@@ -5,11 +5,13 @@ using UrbanCommunity.Api.Constants;
 using UrbanCommunity.Application.Features.Users.Commands.ActivateUser;
 using UrbanCommunity.Application.Features.Users.Commands.AdminUpdateUser;
 using UrbanCommunity.Application.Features.Users.Commands.ChangePassword;
+using UrbanCommunity.Application.Features.Users.Commands.CreateOfficial;
 using UrbanCommunity.Application.Features.Users.Commands.DeactivateUser;
 using UrbanCommunity.Application.Features.Users.Commands.DeleteProfileImage;
 using UrbanCommunity.Application.Features.Users.Commands.UpdateProfile;
 using UrbanCommunity.Application.Features.Users.Commands.UpdateProfileImage;
 using UrbanCommunity.Application.Features.Users.Commands.UpdateUserAccess;
+using UrbanCommunity.Application.Features.Users.Commands.RequiredPasswordChange;
 using UrbanCommunity.Application.Features.Users.Queries.GetCurrentUser;
 using UrbanCommunity.Application.Features.Users.Queries.GetUserById;
 using UrbanCommunity.Application.Features.Users.Queries.GetUsers;
@@ -97,6 +99,18 @@ public class UsersController(IMediator mediator) : ApiController
         return Ok(result);
     }
 
+    [HttpPut("me/required-password")]
+    public async Task<IActionResult> ChangeRequiredPassword(
+        [FromBody] RequiredPasswordChangeRequest request)
+    {
+        var result = await mediator.Send(new RequiredPasswordChangeCommand(
+            GetCurrentUserId(),
+            request.CurrentPassword,
+            request.NewPassword,
+            request.ConfirmNewPassword));
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
+    }
+
     /// <summary>Returns the public profile of the specified user.</summary>
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
@@ -112,6 +126,14 @@ public class UsersController(IMediator mediator) : ApiController
     {
         var result = await mediator.Send(new GetUsersQuery());
         return Ok(result);
+    }
+
+    [HttpPost("officials")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> CreateOfficial([FromBody] CreateOfficialCommand command)
+    {
+        var result = await mediator.Send(command);
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
     }
 
     /// <summary>Returns active users filtered by province. Restricted to Admin.</summary>
@@ -168,9 +190,10 @@ public class UsersController(IMediator mediator) : ApiController
         var result = await mediator.Send(new UpdateUserAccessCommand(
             id,
             request.Role,
-            request.DepartmentId,
+            request.OrganizationDepartmentId,
             request.OfficialJurisdictionLevel,
-            request.OfficialJurisdictionId));
+            request.OfficialJurisdictionId,
+            GetCurrentUserId()));
 
         if (!result.IsSuccess)
             return BadRequest(result);
@@ -183,8 +206,8 @@ public class UsersController(IMediator mediator) : ApiController
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Deactivate(Guid id)
     {
-        var result = await mediator.Send(new DeactivateUserCommand(id));
-        return Ok(result);
+        var result = await mediator.Send(new DeactivateUserCommand(id, GetCurrentUserId()));
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
     }
 
     /// <summary>Reactivates a previously deactivated user account. Restricted to Admin.</summary>
@@ -210,6 +233,11 @@ public sealed record ChangePasswordRequest(
     string NewPassword,
     string ConfirmNewPassword);
 
+public sealed record RequiredPasswordChangeRequest(
+    string CurrentPassword,
+    string NewPassword,
+    string ConfirmNewPassword);
+
 public sealed record AdminUpdateUserRequest(
     string FirstName,
     string LastName,
@@ -219,6 +247,6 @@ public sealed record AdminUpdateUserRequest(
 
 public sealed record UpdateUserAccessRequest(
     UserRole Role,
-    Guid? DepartmentId,
+    Guid? OrganizationDepartmentId,
     OfficialJurisdictionLevel? OfficialJurisdictionLevel,
     Guid? OfficialJurisdictionId);
