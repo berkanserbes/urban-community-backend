@@ -6,6 +6,4 @@ namespace UrbanCommunity.Application.Features.Departments.Commands.UpdateDepartm
 public sealed record UpdateDepartmentCommand(
     Guid Id,
     string Name,
-    string? Description,
-    string? ContactEmail,
-    string? ContactPhone) : IRequest<Result<UpdateDepartmentCommandResponse>>;
+    string? Description) : IRequest<Result<UpdateDepartmentCommandResponse>>;

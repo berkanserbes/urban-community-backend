@@ -28,10 +28,10 @@ public sealed class UpdateDepartmentCommandHandler(IApplicationDbContext context
             throw new AlreadyExistsException($"Bu isimde bir birim zaten mevcut: {request.Name}");
         }
 
-        department.UpdateDetails(request.Name, request.Description, request.ContactEmail, request.ContactPhone);
+        department.UpdateDetails(request.Name, request.Description);
         await context.SaveChangesAsync(cancellationToken);
 
         return Result<UpdateDepartmentCommandResponse>.Success(new UpdateDepartmentCommandResponse(
-            department.Id, department.Name, department.Description, department.ContactEmail, department.ContactPhone));
+            department.Id, department.Name, department.Description));
     }
 }

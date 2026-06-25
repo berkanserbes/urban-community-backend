@@ -3,6 +3,4 @@ namespace UrbanCommunity.Application.Features.Departments.Commands.UpdateDepartm
 public sealed record UpdateDepartmentCommandResponse(
     Guid Id,
     string Name,
-    string? Description,
-    string? ContactEmail,
-    string? ContactPhone);
+    string? Description);
