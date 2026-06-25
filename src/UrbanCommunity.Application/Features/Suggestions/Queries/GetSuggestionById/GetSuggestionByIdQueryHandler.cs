@@ -14,22 +14,30 @@ public sealed class GetSuggestionByIdQueryHandler(IApplicationDbContext context)
     {
         var suggestion = await context.Suggestions
             .AsNoTracking()
-            .Select(s => new GetSuggestionByIdQueryResponse(
-                s.Id,
-                s.Title,
-                s.Content,
-                s.OfficialResponse,
-                s.Status,
-                s.VoteScore,
-                s.UserId,
-                (s.User.FirstName + " " + s.User.LastName).Trim(),
-                s.Votes.Count(v => v.IsUpvote),
-                s.Votes.Count(v => !v.IsUpvote),
-                s.CreatedAt,
-                s.UpdatedAt))
+            .Include(s => s.User)
             .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken)
             ?? throw new NotFoundException(nameof(Suggestion), request.Id);
 
-        return Result<GetSuggestionByIdQueryResponse>.Success(suggestion);
+        var upvoteCount = await context.Votes
+            .CountAsync(v => v.SuggestionId == suggestion.Id && v.IsUpvote, cancellationToken);
+
+        var downvoteCount = await context.Votes
+            .CountAsync(v => v.SuggestionId == suggestion.Id && !v.IsUpvote, cancellationToken);
+
+        var response = new GetSuggestionByIdQueryResponse(
+            suggestion.Id,
+            suggestion.Title,
+            suggestion.Content,
+            suggestion.OfficialResponse,
+            suggestion.Status,
+            suggestion.VoteScore,
+            suggestion.UserId,
+            (suggestion.User.FirstName + " " + suggestion.User.LastName).Trim(),
+            upvoteCount,
+            downvoteCount,
+            suggestion.CreatedAt,
+            suggestion.UpdatedAt);
+
+        return Result<GetSuggestionByIdQueryResponse>.Success(response);
     }
 }

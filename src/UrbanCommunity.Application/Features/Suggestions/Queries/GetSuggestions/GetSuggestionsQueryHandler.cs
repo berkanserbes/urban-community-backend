@@ -20,6 +20,15 @@ public sealed class GetSuggestionsQueryHandler(IApplicationDbContext context)
         if (request.UserId.HasValue)
             query = query.Where(s => s.UserId == request.UserId.Value);
 
+        if (request.NeighborhoodId.HasValue)
+            query = query.Where(s => s.User.Neighborhood != null && s.User.Neighborhood.Id == request.NeighborhoodId.Value);
+
+        if (request.DistrictId.HasValue)
+            query = query.Where(s => s.User.Neighborhood != null && s.User.Neighborhood.DistrictId == request.DistrictId.Value);
+
+        if (request.ProvinceId.HasValue)
+            query = query.Where(s => s.User.Neighborhood != null && s.User.Neighborhood.DistrictNavigation.ProvinceId == request.ProvinceId.Value);
+
         var suggestions = await query
             .OrderByDescending(s => s.VoteScore)
             .ThenByDescending(s => s.CreatedAt)
