@@ -13,7 +13,7 @@ public sealed class GetDepartmentsQueryHandler(IApplicationDbContext context)
         var departments = await context.Departments
             .AsNoTracking()
             .OrderBy(d => d.Name)
-            .Select(d => new GetDepartmentsQueryResponse(d.Id, d.Name, d.Description, d.ContactEmail, d.ContactPhone))
+            .Select(d => new GetDepartmentsQueryResponse(d.Id, d.Name, d.Description))
             .ToListAsync(cancellationToken);
 
         return Result<IReadOnlyList<GetDepartmentsQueryResponse>>.Success(departments);

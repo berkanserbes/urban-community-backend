@@ -3,6 +3,4 @@ namespace UrbanCommunity.Application.Features.Departments.Queries.GetDepartmentB
 public sealed record GetDepartmentByIdQueryResponse(
     Guid Id,
     string Name,
-    string? Description,
-    string? ContactEmail,
-    string? ContactPhone);
+    string? Description);

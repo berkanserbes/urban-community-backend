@@ -18,9 +18,7 @@ public sealed class GetDepartmentByIdQueryHandler(IApplicationDbContext context)
             .Select(d => new GetDepartmentByIdQueryResponse(
                 d.Id,
                 d.Name,
-                d.Description,
-                d.ContactEmail,
-                d.ContactPhone))
+                d.Description))
             .FirstOrDefaultAsync(cancellationToken)
             ?? throw new NotFoundException(nameof(Department), request.Id);
 
