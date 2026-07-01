@@ -53,6 +53,7 @@ try
                 restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Warning);
     });
 
+    builder.Services.AddHttpContextAccessor();
     builder.Services.AddSingleton<AuditInterceptor>();
     builder.Services.AddDbContext<ApplicationDbContext>((provider, options) =>
     {
@@ -119,6 +120,8 @@ try
         x.AddConsumer<ReportDepartmentChangedConsumer>();
         x.AddConsumer<FileUploadConsumer>();
         x.AddConsumer<AnnouncementPublishedConsumer>();
+        x.AddConsumer<SuggestionStatusChangedConsumer>();
+        x.AddConsumer<SuggestionOfficialResponseUpdatedConsumer>();
 
         x.UsingRabbitMq((context, cfg) =>
         {
@@ -157,6 +160,7 @@ try
 
     app.UseHttpsRedirection();
     app.UseAuthentication();
+    app.UseMiddleware<UrbanCommunity.Api.Middlewares.RequiredPasswordChangeMiddleware>();
     app.UseAuthorization();
 
     app.MapControllers();
@@ -286,9 +290,9 @@ static bool TryGetAccessTokenSessionClaims(
         return false;
     }
 
-    var departmentId = TryGetOptionalGuidClaim(
+    var organizationDepartmentId = TryGetOptionalGuidClaim(
         principal!,
-        "DepartmentId",
+        "OrganizationDepartmentId",
         out var departmentClaimValid);
     var jurisdictionId = TryGetOptionalGuidClaim(
         principal!,
@@ -296,6 +300,10 @@ static bool TryGetAccessTokenSessionClaims(
         out var jurisdictionClaimValid);
     var jurisdictionLevelValue =
         principal!.FindFirstValue("OfficialJurisdictionLevel");
+    var mustChangePasswordValue = principal!.FindFirstValue("must_change_password");
+    var mustChangePasswordValid = bool.TryParse(
+        mustChangePasswordValue,
+        out var mustChangePassword);
 
     OfficialJurisdictionLevel? jurisdictionLevel = null;
     var jurisdictionLevelValid =
@@ -309,17 +317,18 @@ static bool TryGetAccessTokenSessionClaims(
 
     if (!departmentClaimValid ||
         !jurisdictionClaimValid ||
-        !jurisdictionLevelValid)
+        !jurisdictionLevelValid ||
+        !mustChangePasswordValid)
     {
         return false;
     }
 
     var officialClaimsAreComplete =
-        departmentId.HasValue &&
+        organizationDepartmentId.HasValue &&
         jurisdictionLevel.HasValue &&
         jurisdictionId.HasValue;
     var nonOfficialClaimsAreEmpty =
-        !departmentId.HasValue &&
+        !organizationDepartmentId.HasValue &&
         !jurisdictionLevel.HasValue &&
         !jurisdictionId.HasValue;
 
@@ -333,9 +342,10 @@ static bool TryGetAccessTokenSessionClaims(
     sessionClaims = new AccessTokenSessionClaims(
         userId,
         role,
-        departmentId,
+        organizationDepartmentId,
         jurisdictionLevel,
-        jurisdictionId);
+        jurisdictionId,
+        mustChangePassword);
 
     return true;
 }
