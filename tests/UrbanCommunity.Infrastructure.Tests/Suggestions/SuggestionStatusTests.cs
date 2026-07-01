@@ -42,9 +42,9 @@ public sealed class SuggestionStatusTests
 
     [Theory]
     [InlineData(SuggestionStatus.Active, true, true)]
-    [InlineData(SuggestionStatus.Reviewing, false, true)]
-    [InlineData(SuggestionStatus.Implementation, false, true)]
-    [InlineData(SuggestionStatus.Closed, false, false)]
+    [InlineData(SuggestionStatus.Reviewing, true, true)]
+    [InlineData(SuggestionStatus.Implementation, true, true)]
+    [InlineData(SuggestionStatus.Closed, true, false)]
     public void InteractionRules_DependOnStatus(
         SuggestionStatus status,
         bool allowsVotes,

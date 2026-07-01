@@ -76,7 +76,7 @@ public sealed class SuggestionVoteServiceTests
     }
 
     [Fact]
-    public async Task SetVote_RejectsNonActiveSuggestion()
+    public async Task SetVote_AllowsNonActiveSuggestion()
     {
         await using var context = CreateContext();
         var data = await SeedAsync(context);
@@ -90,9 +90,9 @@ public sealed class SuggestionVoteServiceTests
             true,
             CancellationToken.None);
 
-        Assert.False(result.IsSuccess);
-        Assert.Empty(await context.Votes.ToListAsync());
-        Assert.Equal(0, data.Suggestion.VoteScore);
+        Assert.True(result.IsSuccess);
+        Assert.Single(await context.Votes.ToListAsync());
+        Assert.Equal(1, result.VoteScore);
     }
 
     private static ApplicationDbContext CreateContext()
