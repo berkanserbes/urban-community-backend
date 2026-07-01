@@ -23,8 +23,9 @@ public sealed class GetReportsQueryHandler(IApplicationDbContext context)
         if (request.CategoryId.HasValue)
             query = query.Where(r => r.CategoryId == request.CategoryId.Value);
 
-        if (request.AssignedDepartmentId.HasValue)
-            query = query.Where(r => r.AssignedDepartmentId == request.AssignedDepartmentId.Value);
+        if (request.AssignedOrganizationDepartmentId.HasValue)
+            query = query.Where(r =>
+                r.AssignedOrganizationDepartmentId == request.AssignedOrganizationDepartmentId.Value);
 
         if (request.UserId.HasValue)
             query = query.Where(r => r.UserId == request.UserId.Value);
@@ -40,12 +41,32 @@ public sealed class GetReportsQueryHandler(IApplicationDbContext context)
                 r.Location != null ? r.Location.Y : null,
                 r.Location != null ? r.Location.X : null,
                 r.UserId,
+                r.User.FirstName + " " + r.User.LastName,
                 r.CategoryId,
                 r.Category.Name,
                 r.NeighborhoodId,
                 r.Neighborhood.Name,
-                r.AssignedDepartmentId,
-                r.AssignedDepartment != null ? r.AssignedDepartment.Name : null,
+                r.AssignedOrganizationDepartmentId,
+                r.AssignedOrganizationDepartment != null
+                    ? r.AssignedOrganizationDepartment.OrganizationId
+                    : null,
+                r.AssignedOrganizationDepartment != null
+                    ? r.AssignedOrganizationDepartment.Organization.Name
+                    : null,
+                r.AssignedOrganizationDepartment != null
+                    ? r.AssignedOrganizationDepartment.DepartmentId
+                    : null,
+                r.AssignedOrganizationDepartment != null
+                    ? r.AssignedOrganizationDepartment.DisplayName ??
+                      r.AssignedOrganizationDepartment.Department.Name
+                    : null,
+                r.AssignedOrganizationDepartment != null
+                    ? r.AssignedOrganizationDepartment.ContactEmail
+                    : null,
+                r.AssignedOrganizationDepartment != null
+                    ? r.AssignedOrganizationDepartment.ContactPhone
+                    : null,
+                r.AssignmentNeedsReview,
                 r.CreatedAt,
                 r.ResolvedAt))
             .ToListAsync(cancellationToken);

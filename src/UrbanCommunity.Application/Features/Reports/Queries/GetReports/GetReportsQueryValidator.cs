@@ -18,9 +18,9 @@ public sealed class GetReportsQueryValidator : AbstractValidator<GetReportsQuery
             .NotEmpty().WithMessage("Kategori kimliği boş olamaz.")
             .When(x => x.CategoryId.HasValue);
 
-        RuleFor(x => x.AssignedDepartmentId)
+        RuleFor(x => x.AssignedOrganizationDepartmentId)
             .NotEmpty().WithMessage("Birim kimliği boş olamaz.")
-            .When(x => x.AssignedDepartmentId.HasValue);
+            .When(x => x.AssignedOrganizationDepartmentId.HasValue);
 
         RuleFor(x => x.UserId)
             .NotEmpty().WithMessage("Kullanıcı kimliği boş olamaz.")

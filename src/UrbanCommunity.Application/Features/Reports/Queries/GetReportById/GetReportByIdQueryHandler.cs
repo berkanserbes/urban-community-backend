@@ -17,7 +17,10 @@ public sealed class GetReportByIdQueryHandler(IApplicationDbContext context)
             .Include(r => r.User)
             .Include(r => r.Category)
             .Include(r => r.Neighborhood)
-            .Include(r => r.AssignedDepartment)
+            .Include(r => r.AssignedOrganizationDepartment)
+                .ThenInclude(department => department!.Organization)
+            .Include(r => r.AssignedOrganizationDepartment)
+                .ThenInclude(department => department!.Department)
             .Include(r => r.Media.OrderBy(m => m.DisplayOrder))
             .Include(r => r.History.OrderByDescending(h => h.CreatedAt))
                 .ThenInclude(h => h.ChangedByUser)
@@ -90,8 +93,15 @@ public sealed class GetReportByIdQueryHandler(IApplicationDbContext context)
             report.Category.Name,
             report.NeighborhoodId,
             report.Neighborhood.Name,
-            report.AssignedDepartmentId,
-            report.AssignedDepartment?.Name,
+            report.AssignedOrganizationDepartmentId,
+            report.AssignedOrganizationDepartment?.OrganizationId,
+            report.AssignedOrganizationDepartment?.Organization.Name,
+            report.AssignedOrganizationDepartment?.DepartmentId,
+            report.AssignedOrganizationDepartment?.DisplayName ??
+                report.AssignedOrganizationDepartment?.Department.Name,
+            report.AssignedOrganizationDepartment?.ContactEmail,
+            report.AssignedOrganizationDepartment?.ContactPhone,
+            report.AssignmentNeedsReview,
             media,
             history,
             similarReports,
