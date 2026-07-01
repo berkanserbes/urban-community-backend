@@ -49,15 +49,20 @@ public class ReportConfiguration : BaseEntityConfiguration<Report>
             .HasForeignKey(r => r.NeighborhoodId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne(r => r.AssignedDepartment)
+        builder.HasOne(r => r.AssignedOrganizationDepartment)
             .WithMany(d => d.AssignedReports)
-            .HasForeignKey(r => r.AssignedDepartmentId)
+            .HasForeignKey(r => r.AssignedOrganizationDepartmentId)
             .OnDelete(DeleteBehavior.SetNull);
+
+        builder.Property(r => r.AssignmentNeedsReview)
+            .HasDefaultValue(false);
 
         builder.HasIndex(r => r.Status);
         builder.HasIndex(r => r.Priority);
         builder.HasIndex(r => new { r.NeighborhoodId, r.Status });
         builder.HasIndex(r => r.ContentHash);
+        builder.HasIndex(r => r.AssignedOrganizationDepartmentId);
+        builder.HasIndex(r => r.AssignmentNeedsReview);
 
         // PostGIS Spatial Index (konum bazlı sorguları hızlandırır)
         builder.HasIndex(r => r.Location)
