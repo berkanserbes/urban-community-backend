@@ -39,7 +39,8 @@ public sealed class ChangeReportStatusCommandHandler(
         if (oldStatus == request.NewStatus)
             return Result<ChangeReportStatusCommandResponse>.Failure(["Rapor zaten belirtilen durumda."]);
 
-        if (request.NewStatus == ReportStatus.InProgress && !report.AssignedDepartmentId.HasValue)
+        if (request.NewStatus == ReportStatus.InProgress &&
+            !report.AssignedOrganizationDepartmentId.HasValue)
         {
             return Result<ChangeReportStatusCommandResponse>.Failure(
                 ["Rapor işleme alınmadan önce bir birime atanmalıdır."]);
