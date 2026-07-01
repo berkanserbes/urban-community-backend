@@ -8,6 +8,9 @@ public sealed record ReportDepartmentChangedEvent
     public Guid ProvinceId { get; init; }
     public Guid DistrictId { get; init; }
     public Guid NeighborhoodId { get; init; }
+    public Guid? OrganizationDepartmentId { get; init; }
+    public Guid? OrganizationId { get; init; }
+    public string? OrganizationName { get; init; }
     public Guid? DepartmentId { get; init; }
     public string? DepartmentName { get; init; }
     public DateTime ChangedAt { get; init; }
