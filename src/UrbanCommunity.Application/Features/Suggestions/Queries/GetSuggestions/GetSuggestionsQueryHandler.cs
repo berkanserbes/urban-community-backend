@@ -10,6 +10,8 @@ public sealed class GetSuggestionsQueryHandler(IApplicationDbContext context)
 {
     public async Task<Result<IReadOnlyList<GetSuggestionsQueryResponse>>> Handle(GetSuggestionsQuery request, CancellationToken cancellationToken)
     {
+        var requestingUserId = request.RequestingUserId;
+
         var query = context.Suggestions
             .AsNoTracking()
             .AsQueryable();
@@ -43,6 +45,12 @@ public sealed class GetSuggestionsQueryHandler(IApplicationDbContext context)
                 s.Votes.Count(v => !v.IsUpvote),
                 s.UserId,
                 (s.User.FirstName + " " + s.User.LastName).Trim(),
+                requestingUserId.HasValue
+                    ? s.Votes
+                        .Where(v => v.UserId == requestingUserId.Value)
+                        .Select(v => (bool?)v.IsUpvote)
+                        .FirstOrDefault()
+                    : null,
                 s.CreatedAt))
             .ToListAsync(cancellationToken);
 

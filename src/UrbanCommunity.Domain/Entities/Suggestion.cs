@@ -62,7 +62,7 @@ public class Suggestion : BaseEntity
         Status = newStatus;
     }
 
-    public bool AllowsVotes() => Status == SuggestionStatus.Active;
+    public bool AllowsVotes() => true;
 
     public bool AllowsCommentChanges() => Status != SuggestionStatus.Closed;
 }

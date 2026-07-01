@@ -9,4 +9,5 @@ public sealed record GetSuggestionsQuery(
     Guid? UserId = null,
     Guid? NeighborhoodId = null,
     Guid? DistrictId = null,
-    Guid? ProvinceId = null) : IRequest<Result<IReadOnlyList<GetSuggestionsQueryResponse>>>;
+    Guid? ProvinceId = null,
+    Guid? RequestingUserId = null) : IRequest<Result<IReadOnlyList<GetSuggestionsQueryResponse>>>;

@@ -13,4 +13,5 @@ public sealed record GetSuggestionsQueryResponse(
     int DownVotes,
     Guid UserId,
     string UserFullName,
+    bool? CurrentUserIsUpvote,
     DateTime CreatedAt);

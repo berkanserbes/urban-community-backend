@@ -27,7 +27,9 @@ public class SuggestionsController(IMediator mediator) : ApiController
         [FromQuery] Guid? provinceId,
         CancellationToken cancellationToken)
     {
-        var result = await mediator.Send(new GetSuggestionsQuery(status, userId, neighborhoodId, districtId, provinceId), cancellationToken);
+        var result = await mediator.Send(
+            new GetSuggestionsQuery(status, userId, neighborhoodId, districtId, provinceId, GetCurrentUserId()),
+            cancellationToken);
         return Ok(result);
     }
 
