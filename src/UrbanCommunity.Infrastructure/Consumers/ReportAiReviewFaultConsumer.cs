@@ -39,10 +39,13 @@ public sealed class ReportAiReviewFaultConsumer(
                 match.SimilarReportId == report.Id)
             .ToListAsync(cancellationToken);
         context.ReportSimilarityMatches.RemoveRange(existingMatches);
-        report.ChangeStatus(
+        var history = report.ChangeStatus(
             ReportStatus.PendingReview,
             null,
             "AI servisine geçici olarak ulaşılamadı; mevcut kategori ve varsayılan Medium önceliği uygulandı.");
+
+        if (history is not null)
+            context.ReportHistories.Add(history);
 
         await context.SaveChangesAsync(cancellationToken);
 

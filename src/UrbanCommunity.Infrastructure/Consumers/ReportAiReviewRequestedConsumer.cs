@@ -102,7 +102,7 @@ public sealed class ReportAiReviewRequestedConsumer(
         report.UpdatePriority(
             prioritySuggestion?.Priority ?? ReportPriority.Medium);
 
-        report.ChangeStatus(
+        var history = report.ChangeStatus(
             ReportStatus.PendingReview,
             null,
             BuildReviewNote(
@@ -110,6 +110,8 @@ public sealed class ReportAiReviewRequestedConsumer(
                 prioritySuggestion is not null,
                 similaritySuggestions is not null,
                 acceptedMatches.Count));
+        if (history is not null)
+            context.ReportHistories.Add(history);
 
         await context.SaveChangesAsync(cancellationToken);
 
