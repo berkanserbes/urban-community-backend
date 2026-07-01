@@ -23,8 +23,12 @@ public interface IApplicationDbContext
     DbSet<SuggestionComment> SuggestionComments { get; }
     DbSet<CommunityPostComment> CommunityPostComments { get; }
     DbSet<Department> Departments { get; }
+    DbSet<Organization> Organizations { get; }
+    DbSet<OrganizationDepartment> OrganizationDepartments { get; }
+    DbSet<OrganizationDepartmentCategory> OrganizationDepartmentCategories { get; }
     DbSet<Announcement> Announcements { get; }
     DbSet<UserRefreshToken> UserRefreshTokens { get; }
+    DbSet<AuditLog> AuditLogs { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }
