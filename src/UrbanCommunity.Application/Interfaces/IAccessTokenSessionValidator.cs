@@ -12,6 +12,7 @@ public interface IAccessTokenSessionValidator
 public sealed record AccessTokenSessionClaims(
     Guid UserId,
     UserRole Role,
-    Guid? DepartmentId,
+    Guid? OrganizationDepartmentId,
     OfficialJurisdictionLevel? OfficialJurisdictionLevel,
-    Guid? OfficialJurisdictionId);
+    Guid? OfficialJurisdictionId,
+    bool MustChangePassword = false);

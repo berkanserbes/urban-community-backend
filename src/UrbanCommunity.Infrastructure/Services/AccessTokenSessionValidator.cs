@@ -18,7 +18,8 @@ public sealed class AccessTokenSessionValidator(IApplicationDbContext context)
             {
                 user.IsActive,
                 user.Role,
-                user.DepartmentId,
+                user.OrganizationDepartmentId,
+                user.MustChangePassword,
                 user.OfficialJurisdictionLevel,
                 OfficialJurisdictionId =
                     user.OfficialProvinceId ??
@@ -29,19 +30,20 @@ public sealed class AccessTokenSessionValidator(IApplicationDbContext context)
 
         if (user is null ||
             !user.IsActive ||
-            user.Role != claims.Role)
+            user.Role != claims.Role ||
+            user.MustChangePassword != claims.MustChangePassword)
         {
             return false;
         }
 
         if (user.Role != UserRole.Official)
         {
-            return !claims.DepartmentId.HasValue &&
+            return !claims.OrganizationDepartmentId.HasValue &&
                    !claims.OfficialJurisdictionLevel.HasValue &&
                    !claims.OfficialJurisdictionId.HasValue;
         }
 
-        return user.DepartmentId == claims.DepartmentId &&
+        return user.OrganizationDepartmentId == claims.OrganizationDepartmentId &&
                user.OfficialJurisdictionLevel == claims.OfficialJurisdictionLevel &&
                user.OfficialJurisdictionId == claims.OfficialJurisdictionId;
     }
