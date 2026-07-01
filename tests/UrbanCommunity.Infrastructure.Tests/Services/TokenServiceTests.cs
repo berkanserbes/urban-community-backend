@@ -13,8 +13,6 @@ public sealed class TokenServiceTests
     public void GenerateToken_DoesNotAddOfficialClaims_ForNonOfficialUser()
     {
         var user = CreateUser(UserRole.Citizen);
-        user.DepartmentId = Guid.NewGuid();
-
         var token = new JwtSecurityTokenHandler().ReadJwtToken(
             CreateTokenService().GenerateToken(user));
 
@@ -26,12 +24,12 @@ public sealed class TokenServiceTests
     [Fact]
     public void GenerateToken_AddsCompleteAccessClaims_ForOfficialUser()
     {
-        var departmentId = Guid.NewGuid();
+        var organizationDepartmentId = Guid.NewGuid();
         var jurisdictionId = Guid.NewGuid();
         var user = CreateUser(UserRole.Official);
         user.UpdateAccess(
             UserRole.Official,
-            departmentId,
+            organizationDepartmentId,
             OfficialJurisdictionLevel.District,
             jurisdictionId);
 
@@ -39,8 +37,8 @@ public sealed class TokenServiceTests
             CreateTokenService().GenerateToken(user));
 
         Assert.Equal(
-            departmentId.ToString(),
-            token.Claims.Single(claim => claim.Type == "DepartmentId").Value);
+            organizationDepartmentId.ToString(),
+            token.Claims.Single(claim => claim.Type == "OrganizationDepartmentId").Value);
         Assert.Equal(
             OfficialJurisdictionLevel.District.ToString(),
             token.Claims.Single(claim => claim.Type == "OfficialJurisdictionLevel").Value);

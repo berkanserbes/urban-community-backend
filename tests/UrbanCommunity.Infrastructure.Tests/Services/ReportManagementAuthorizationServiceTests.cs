@@ -21,7 +21,7 @@ public sealed class ReportManagementAuthorizationServiceTests
     {
         await using var context = CreateContext();
         var data = await SeedAsync(context);
-        var official = CreateOfficial(data, level, data.PrimaryDepartment.Id);
+        var official = CreateOfficial(data, level, data.PrimaryOrganizationDepartment.Id);
         context.Users.Add(official);
         await context.SaveChangesAsync();
         var service = new ReportManagementAuthorizationService(context);
@@ -42,11 +42,11 @@ public sealed class ReportManagementAuthorizationServiceTests
         var official = CreateOfficial(
             data,
             OfficialJurisdictionLevel.Province,
-            data.PrimaryDepartment.Id);
+            data.PrimaryOrganizationDepartment.Id);
         context.Users.Add(official);
 
-        data.SameNeighborhoodReport.AssignedDepartmentId = data.OtherDepartment.Id;
-        data.SameDistrictReport.AssignedDepartmentId = data.PrimaryDepartment.Id;
+        data.SameNeighborhoodReport.AssignOrganizationDepartment(
+            data.OtherOrganizationDepartment.Id);
         await context.SaveChangesAsync();
         var service = new ReportManagementAuthorizationService(context);
 
@@ -95,7 +95,7 @@ public sealed class ReportManagementAuthorizationServiceTests
         var official = CreateOfficial(
             data,
             OfficialJurisdictionLevel.Neighborhood,
-            data.PrimaryDepartment.Id);
+            data.PrimaryOrganizationDepartment.Id);
         context.Users.Add(official);
         await context.SaveChangesAsync();
         var service = new ReportManagementAuthorizationService(context);
@@ -116,15 +116,15 @@ public sealed class ReportManagementAuthorizationServiceTests
         var provinceOfficial = CreateOfficial(
             data,
             OfficialJurisdictionLevel.Province,
-            data.PrimaryDepartment.Id);
+            data.PrimaryOrganizationDepartment.Id);
         var districtOfficial = CreateOfficial(
             data,
             OfficialJurisdictionLevel.District,
-            data.PrimaryDepartment.Id);
+            data.PrimaryOrganizationDepartment.Id);
         var neighborhoodOfficial = CreateOfficial(
             data,
             OfficialJurisdictionLevel.Neighborhood,
-            data.PrimaryDepartment.Id);
+            data.PrimaryOrganizationDepartment.Id);
         var otherProvinceOfficial = new User
         {
             Id = Guid.NewGuid(),
@@ -135,7 +135,7 @@ public sealed class ReportManagementAuthorizationServiceTests
         };
         otherProvinceOfficial.UpdateAccess(
             UserRole.Official,
-            data.PrimaryDepartment.Id,
+            data.PrimaryOrganizationDepartment.Id,
             OfficialJurisdictionLevel.Province,
             data.OtherProvince.Id);
 
@@ -174,7 +174,7 @@ public sealed class ReportManagementAuthorizationServiceTests
     private static User CreateOfficial(
         TestData data,
         OfficialJurisdictionLevel level,
-        Guid departmentId)
+        Guid organizationDepartmentId)
     {
         var user = new User
         {
@@ -195,7 +195,7 @@ public sealed class ReportManagementAuthorizationServiceTests
 
         user.UpdateAccess(
             UserRole.Official,
-            departmentId,
+            organizationDepartmentId,
             level,
             jurisdictionId);
 
@@ -248,6 +248,23 @@ public sealed class ReportManagementAuthorizationServiceTests
         var category = new ReportCategory { Name = "Test" };
         var primaryDepartment = new Department { Name = "Primary Department" };
         var otherDepartment = new Department { Name = "Other Department" };
+        var organization = new Organization
+        {
+            Name = "Province A Municipality",
+            Province = primaryProvince,
+            ProvinceId = primaryProvince.Id,
+            JurisdictionLevel = OrganizationJurisdictionLevel.Province
+        };
+        var primaryOrganizationDepartment = new OrganizationDepartment
+        {
+            Organization = organization,
+            Department = primaryDepartment
+        };
+        var otherOrganizationDepartment = new OrganizationDepartment
+        {
+            Organization = organization,
+            Department = otherDepartment
+        };
 
         var sameNeighborhoodReport = CreateReport(
             "Same neighborhood",
@@ -270,11 +287,23 @@ public sealed class ReportManagementAuthorizationServiceTests
             owner,
             category);
 
+        sameNeighborhoodReport.AssignOrganizationDepartment(
+            primaryOrganizationDepartment.Id);
+        sameDistrictReport.AssignOrganizationDepartment(
+            primaryOrganizationDepartment.Id);
+        sameProvinceReport.AssignOrganizationDepartment(
+            primaryOrganizationDepartment.Id);
+        otherProvinceReport.AssignOrganizationDepartment(
+            primaryOrganizationDepartment.Id);
+
         context.AddRange(
             primaryProvince,
             otherProvince,
             primaryDepartment,
             otherDepartment,
+            organization,
+            primaryOrganizationDepartment,
+            otherOrganizationDepartment,
             owner,
             category,
             sameNeighborhoodReport,
@@ -290,6 +319,8 @@ public sealed class ReportManagementAuthorizationServiceTests
             primaryNeighborhood,
             primaryDepartment,
             otherDepartment,
+            primaryOrganizationDepartment,
+            otherOrganizationDepartment,
             sameNeighborhoodReport,
             sameDistrictReport,
             sameProvinceReport);
@@ -333,6 +364,8 @@ public sealed class ReportManagementAuthorizationServiceTests
         Neighborhood PrimaryNeighborhood,
         Department PrimaryDepartment,
         Department OtherDepartment,
+        OrganizationDepartment PrimaryOrganizationDepartment,
+        OrganizationDepartment OtherOrganizationDepartment,
         Report SameNeighborhoodReport,
         Report SameDistrictReport,
         Report SameProvinceReport);

@@ -1,3 +1,4 @@
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using UrbanCommunity.Application.Common.Exceptions;
 using UrbanCommunity.Application.Features.Comments.Commands.SuggestionComment.AddSuggestionComment;
@@ -15,6 +16,28 @@ namespace UrbanCommunity.Infrastructure.Tests.Suggestions;
 
 public sealed class SuggestionWorkflowHandlerTests
 {
+    private static readonly IPublishEndpoint NoopPublisher = new NoopPublishEndpoint();
+
+    private sealed class NoopPublishEndpoint : IPublishEndpoint
+    {
+        public Task Publish<T>(T message, CancellationToken cancellationToken = default) where T : class => Task.CompletedTask;
+        public Task Publish<T>(T message, IPipe<PublishContext<T>> pipe, CancellationToken cancellationToken = default) where T : class => Task.CompletedTask;
+        public Task Publish<T>(T message, IPipe<PublishContext> pipe, CancellationToken cancellationToken = default) where T : class => Task.CompletedTask;
+        public Task Publish(object message, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task Publish(object message, Type messageType, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task Publish(object message, IPipe<PublishContext> pipe, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task Publish(object message, Type messageType, IPipe<PublishContext> pipe, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        Task IPublishEndpoint.Publish<T>(object message, CancellationToken cancellationToken) => Task.CompletedTask;
+        Task IPublishEndpoint.Publish<T>(object message, IPipe<PublishContext<T>> pipe, CancellationToken cancellationToken) => Task.CompletedTask;
+        Task IPublishEndpoint.Publish<T>(object message, IPipe<PublishContext> pipe, CancellationToken cancellationToken) => Task.CompletedTask;
+        public ConnectHandle ConnectPublishObserver(IPublishObserver observer) => new NoopConnectHandle();
+
+        private sealed class NoopConnectHandle : ConnectHandle
+        {
+            public void Dispose() { }
+            public void Disconnect() { }
+        }
+    }
     [Fact]
     public async Task ChangeStatus_AllowsActiveOfficialFromDatabase()
     {
@@ -25,7 +48,7 @@ public sealed class SuggestionWorkflowHandlerTests
         context.Suggestions.Add(suggestion);
         await context.SaveChangesAsync();
 
-        var handler = new ChangeSuggestionStatusCommandHandler(context);
+        var handler = new ChangeSuggestionStatusCommandHandler(context, NoopPublisher);
         var result = await handler.Handle(
             new ChangeSuggestionStatusCommand(
                 suggestion.Id,
@@ -47,7 +70,7 @@ public sealed class SuggestionWorkflowHandlerTests
         context.Suggestions.Add(suggestion);
         await context.SaveChangesAsync();
 
-        var handler = new ChangeSuggestionStatusCommandHandler(context);
+        var handler = new ChangeSuggestionStatusCommandHandler(context, NoopPublisher);
 
         await Assert.ThrowsAsync<ForbiddenAccessException>(() => handler.Handle(
             new ChangeSuggestionStatusCommand(
@@ -110,7 +133,7 @@ public sealed class SuggestionWorkflowHandlerTests
         context.Suggestions.Add(suggestion);
         await context.SaveChangesAsync();
 
-        var handler = new UpdateSuggestionOfficialResponseCommandHandler(context);
+        var handler = new UpdateSuggestionOfficialResponseCommandHandler(context, NoopPublisher);
         var result = await handler.Handle(
             new UpdateSuggestionOfficialResponseCommand(
                 suggestion.Id,
@@ -133,7 +156,7 @@ public sealed class SuggestionWorkflowHandlerTests
         context.Suggestions.Add(suggestion);
         await context.SaveChangesAsync();
 
-        var handler = new UpdateSuggestionOfficialResponseCommandHandler(context);
+        var handler = new UpdateSuggestionOfficialResponseCommandHandler(context, NoopPublisher);
 
         await Assert.ThrowsAsync<ForbiddenAccessException>(() => handler.Handle(
             new UpdateSuggestionOfficialResponseCommand(
@@ -154,7 +177,7 @@ public sealed class SuggestionWorkflowHandlerTests
         context.Suggestions.Add(suggestion);
         await context.SaveChangesAsync();
 
-        var handler = new UpdateSuggestionOfficialResponseCommandHandler(context);
+        var handler = new UpdateSuggestionOfficialResponseCommandHandler(context, NoopPublisher);
         var result = await handler.Handle(
             new UpdateSuggestionOfficialResponseCommand(
                 suggestion.Id,

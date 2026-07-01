@@ -15,17 +15,17 @@ public sealed class UpdateUserAccessTests
         OfficialJurisdictionLevel level)
     {
         var user = new User();
-        var departmentId = Guid.NewGuid();
+        var organizationDepartmentId = Guid.NewGuid();
         var jurisdictionId = Guid.NewGuid();
 
         user.UpdateAccess(
             UserRole.Official,
-            departmentId,
+            organizationDepartmentId,
             level,
             jurisdictionId);
 
         Assert.Equal(UserRole.Official, user.Role);
-        Assert.Equal(departmentId, user.DepartmentId);
+        Assert.Equal(organizationDepartmentId, user.OrganizationDepartmentId);
         Assert.Equal(level, user.OfficialJurisdictionLevel);
         Assert.Equal(
             level == OfficialJurisdictionLevel.Province ? jurisdictionId : null,
@@ -51,7 +51,7 @@ public sealed class UpdateUserAccessTests
         user.UpdateAccess(UserRole.Citizen);
 
         Assert.Equal(UserRole.Citizen, user.Role);
-        Assert.Null(user.DepartmentId);
+        Assert.Null(user.OrganizationDepartmentId);
         Assert.Null(user.OfficialJurisdictionLevel);
         Assert.Null(user.OfficialProvinceId);
         Assert.Null(user.OfficialDistrictId);
@@ -72,7 +72,9 @@ public sealed class UpdateUserAccessTests
         var result = validator.Validate(command);
 
         Assert.False(result.IsValid);
-        Assert.Contains(result.Errors, error => error.PropertyName == nameof(command.DepartmentId));
+        Assert.Contains(
+            result.Errors,
+            error => error.PropertyName == nameof(command.OrganizationDepartmentId));
         Assert.Contains(result.Errors, error => error.PropertyName == nameof(command.OfficialJurisdictionLevel));
         Assert.Contains(result.Errors, error => error.PropertyName == nameof(command.OfficialJurisdictionId));
     }
