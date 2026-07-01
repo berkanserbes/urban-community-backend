@@ -31,8 +31,13 @@ public class ApplicationDbContext : IdentityDbContext<User, IdentityRole<Guid>, 
     public DbSet<SuggestionComment> SuggestionComments => Set<SuggestionComment>();
     public DbSet<CommunityPostComment> CommunityPostComments => Set<CommunityPostComment>();
     public DbSet<Department> Departments => Set<Department>();
+    public DbSet<Organization> Organizations => Set<Organization>();
+    public DbSet<OrganizationDepartment> OrganizationDepartments => Set<OrganizationDepartment>();
+    public DbSet<OrganizationDepartmentCategory> OrganizationDepartmentCategories =>
+        Set<OrganizationDepartmentCategory>();
     public DbSet<Announcement> Announcements => Set<Announcement>();
     public DbSet<UserRefreshToken> UserRefreshTokens => Set<UserRefreshToken>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
