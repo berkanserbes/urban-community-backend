@@ -1,0 +1,3 @@
+namespace UrbanCommunity.Application.Features.OrganizationDepartments.Commands.DeleteOrganizationDepartment;
+
+public sealed record DeleteOrganizationDepartmentCommandResponse(string Message);
