@@ -16,7 +16,6 @@ public sealed class ChangePasswordCommandValidator : AbstractValidator<ChangePas
             .Matches("[A-Z]").WithMessage("Şifre en az bir büyük harf içermelidir.")
             .Matches("[a-z]").WithMessage("Şifre en az bir küçük harf içermelidir.")
             .Matches("[0-9]").WithMessage("Şifre en az bir rakam içermelidir.")
-            .Matches("[^a-zA-Z0-9]").WithMessage("Şifre en az bir özel karakter içermelidir.")
             .NotEqual(x => x.CurrentPassword).WithMessage("Yeni şifre mevcut şifreden farklı olmalıdır.");
 
         RuleFor(x => x.ConfirmNewPassword)
