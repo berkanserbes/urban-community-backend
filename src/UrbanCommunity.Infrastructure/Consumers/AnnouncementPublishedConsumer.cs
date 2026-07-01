@@ -55,6 +55,22 @@ public sealed class AnnouncementPublishedConsumer(
             {
                 context.Notifications.AddRange(notifications);
                 await context.SaveChangesAsync(cancellationToken);
+
+                await Task.WhenAll(notifications.Select(n =>
+                    notificationService.SendToUserAsync(
+                        n.UserId.ToString(),
+                        "NewNotification",
+                        new
+                        {
+                            id = n.Id,
+                            title = n.Title,
+                            message = n.Message,
+                            isRead = n.IsRead,
+                            relatedEntityId = n.RelatedEntityId,
+                            relatedEntityType = n.RelatedEntityType?.ToString(),
+                            createdAt = n.CreatedAt
+                        },
+                        cancellationToken)));
             }
         }
 

@@ -41,18 +41,35 @@ public sealed class ReportStatusChangedConsumer(
         context.Notifications.Add(notification);
         await context.SaveChangesAsync(consumeContext.CancellationToken);
 
-        await notificationService.SendToUserAsync(
-            evt.ReportOwnerId.ToString(),
-            "ReportStatusChanged",
-            new
-            {
-                reportId = evt.ReportId,
-                reportTitle = evt.ReportTitle,
-                oldStatus = evt.OldStatus.ToString(),
-                newStatus = evt.NewStatus.ToString(),
-                note = evt.Note,
-                changedAt = evt.ChangedAt
-            },
-            consumeContext.CancellationToken);
+        var newNotificationPayload = new
+        {
+            id = notification.Id,
+            title = notification.Title,
+            message = notification.Message,
+            isRead = notification.IsRead,
+            relatedEntityId = notification.RelatedEntityId,
+            relatedEntityType = notification.RelatedEntityType?.ToString(),
+            createdAt = notification.CreatedAt
+        };
+
+        await Task.WhenAll(
+            notificationService.SendToUserAsync(
+                evt.ReportOwnerId.ToString(),
+                "NewNotification",
+                newNotificationPayload,
+                consumeContext.CancellationToken),
+            notificationService.SendToUserAsync(
+                evt.ReportOwnerId.ToString(),
+                "ReportStatusChanged",
+                new
+                {
+                    reportId = evt.ReportId,
+                    reportTitle = evt.ReportTitle,
+                    oldStatus = evt.OldStatus.ToString(),
+                    newStatus = evt.NewStatus.ToString(),
+                    note = evt.Note,
+                    changedAt = evt.ChangedAt
+                },
+                consumeContext.CancellationToken));
     }
 }

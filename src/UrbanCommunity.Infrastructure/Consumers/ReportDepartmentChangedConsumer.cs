@@ -18,28 +18,27 @@ public sealed class ReportDepartmentChangedConsumer(
         var evt = consumeContext.Message;
         var notifications = new List<Notification>();
 
-        var ownerMessage = evt.DepartmentId.HasValue
-            ? $"\"{evt.ReportTitle}\" başlıklı raporunuz {evt.DepartmentName} birimine atandı."
+        var ownerMessage = evt.OrganizationDepartmentId.HasValue
+            ? $"\"{evt.ReportTitle}\" başlıklı raporunuz {evt.OrganizationName} / {evt.DepartmentName} birimine atandı."
             : $"\"{evt.ReportTitle}\" başlıklı raporunuzun birim ataması kaldırıldı.";
 
         notifications.Add(CreateNotification(evt.ReportOwnerId, evt.ReportId, ownerMessage));
-
         var officialIds = new List<Guid>();
 
-        if (evt.DepartmentId.HasValue)
+        if (evt.OrganizationDepartmentId.HasValue)
         {
             officialIds = await context.Users
                 .AsNoTracking()
-                .Where(u =>
-                    u.IsActive &&
-                    u.Role == UserRole.Official &&
-                    u.DepartmentId == evt.DepartmentId.Value &&
-                    u.Id != evt.ReportOwnerId)
+                .Where(user =>
+                    user.IsActive &&
+                    user.Role == UserRole.Official &&
+                    user.OrganizationDepartmentId == evt.OrganizationDepartmentId.Value &&
+                    user.Id != evt.ReportOwnerId)
                 .WhereJurisdictionMatches(
                     evt.ProvinceId,
                     evt.DistrictId,
                     evt.NeighborhoodId)
-                .Select(u => u.Id)
+                .Select(user => user.Id)
                 .ToListAsync(consumeContext.CancellationToken);
 
             notifications.AddRange(officialIds.Select(userId =>
@@ -52,41 +51,43 @@ public sealed class ReportDepartmentChangedConsumer(
         context.Notifications.AddRange(notifications);
         await context.SaveChangesAsync(consumeContext.CancellationToken);
 
-        var ownerEventName = evt.DepartmentId.HasValue
+        var ownerEventName = evt.OrganizationDepartmentId.HasValue
             ? "ReportDepartmentAssigned"
             : "ReportDepartmentUnassigned";
-
-        await notificationService.SendToUserAsync(
-            evt.ReportOwnerId.ToString(),
-            ownerEventName,
-            new
-            {
-                reportId = evt.ReportId,
-                reportTitle = evt.ReportTitle,
-                departmentId = evt.DepartmentId,
-                departmentName = evt.DepartmentName,
-                changedAt = evt.ChangedAt
-            },
-            consumeContext.CancellationToken);
-
-        if (officialIds.Count == 0)
-            return;
-
-        var officialData = new
+        var eventData = new
         {
             reportId = evt.ReportId,
             reportTitle = evt.ReportTitle,
+            organizationDepartmentId = evt.OrganizationDepartmentId,
+            organizationId = evt.OrganizationId,
+            organizationName = evt.OrganizationName,
             departmentId = evt.DepartmentId,
             departmentName = evt.DepartmentName,
             changedAt = evt.ChangedAt
         };
 
-        await Task.WhenAll(officialIds.Select(userId =>
+        await Task.WhenAll(notifications.SelectMany(n => new[]
+        {
             notificationService.SendToUserAsync(
-                userId.ToString(),
-                "ReportDepartmentAssigned",
-                officialData,
-                consumeContext.CancellationToken)));
+                n.UserId.ToString(),
+                "NewNotification",
+                new
+                {
+                    id = n.Id,
+                    title = n.Title,
+                    message = n.Message,
+                    isRead = n.IsRead,
+                    relatedEntityId = n.RelatedEntityId,
+                    relatedEntityType = n.RelatedEntityType?.ToString(),
+                    createdAt = n.CreatedAt
+                },
+                consumeContext.CancellationToken),
+            notificationService.SendToUserAsync(
+                n.UserId.ToString(),
+                n.UserId == evt.ReportOwnerId ? ownerEventName : "ReportDepartmentAssigned",
+                eventData,
+                consumeContext.CancellationToken)
+        }));
     }
 
     private static Notification CreateNotification(Guid userId, Guid reportId, string message)
