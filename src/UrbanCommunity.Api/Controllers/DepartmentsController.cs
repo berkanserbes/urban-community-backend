@@ -31,7 +31,7 @@ public class DepartmentsController : ApiController
     }
 
     [HttpGet("with-stats")]
-    [Authorize(Roles = "Admin,Official")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> GetWithStats()
     {
         var result = await _mediator.Send(new GetDepartmentWithStatsQuery());
@@ -46,7 +46,7 @@ public class DepartmentsController : ApiController
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin,Official")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Create([FromBody] CreateDepartmentCommand command)
     {
         var result = await _mediator.Send(command);
