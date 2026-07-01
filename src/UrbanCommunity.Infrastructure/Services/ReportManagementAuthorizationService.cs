@@ -36,7 +36,7 @@ public sealed class ReportManagementAuthorizationService(IApplicationDbContext c
 
         if (user.Role != UserRole.Official ||
             isAdmin ||
-            !user.DepartmentId.HasValue ||
+            !user.OrganizationDepartmentId.HasValue ||
             !user.OfficialJurisdictionLevel.HasValue)
         {
             throw new ForbiddenAccessException("Rapor yönetimi için geçerli bir rolünüz bulunmuyor.");
@@ -51,10 +51,21 @@ public sealed class ReportManagementAuthorizationService(IApplicationDbContext c
             throw new ForbiddenAccessException("Rapor yönetimi için geçerli bir Official yetki alanınız bulunmuyor.");
         }
 
+        var localDepartmentIsActive = await context.OrganizationDepartments
+            .AsNoTracking()
+            .AnyAsync(
+                department =>
+                    department.Id == user.OrganizationDepartmentId &&
+                    department.IsActive &&
+                    department.Organization.IsActive,
+                cancellationToken);
+        if (!localDepartmentIsActive)
+            throw new ForbiddenAccessException("Bağlı olduğunuz kurum birimi aktif değil.");
+
         var access = new ReportManagementAccess(
             false,
             user.Id,
-            user.DepartmentId,
+            user.OrganizationDepartmentId,
             user.OfficialJurisdictionLevel,
             jurisdictionId);
 
@@ -86,8 +97,7 @@ public sealed class ReportManagementAuthorizationService(IApplicationDbContext c
         };
 
         return geographicallyScopedReports.Where(report =>
-            !report.AssignedDepartmentId.HasValue ||
-            report.AssignedDepartmentId == access.DepartmentId);
+            report.AssignedOrganizationDepartmentId == access.OrganizationDepartmentId);
     }
 
     public async Task EnsureCanManageAsync(
