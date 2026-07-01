@@ -9,4 +9,6 @@ public class ReportCategory : BaseEntity
     public string? IconUrl { get; set; }
 
     public ICollection<Report> Reports { get; set; } = new List<Report>();
+    public ICollection<OrganizationDepartmentCategory> OrganizationDepartments { get; set; } =
+        new List<OrganizationDepartmentCategory>();
 }

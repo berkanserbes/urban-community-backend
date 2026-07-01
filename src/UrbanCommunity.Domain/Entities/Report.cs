@@ -62,8 +62,9 @@ public class Report : BaseEntity
     public Guid NeighborhoodId { get; set; }
     public Neighborhood Neighborhood { get; set; } = null!;
     
-    public Guid? AssignedDepartmentId { get; set; }
-    public Department? AssignedDepartment { get; set; }
+    public Guid? AssignedOrganizationDepartmentId { get; set; }
+    public OrganizationDepartment? AssignedOrganizationDepartment { get; set; }
+    public bool AssignmentNeedsReview { get; private set; }
 
     public ICollection<ReportMedia> Media { get; set; } = new List<ReportMedia>();
     public ICollection<ReportHistory> History { get; set; } = new List<ReportHistory>();
@@ -110,10 +111,13 @@ public class Report : BaseEntity
         });
     }
 
-    public void AssignDepartment(Guid? departmentId)
+    public void AssignOrganizationDepartment(Guid? organizationDepartmentId)
     {
-        AssignedDepartmentId = departmentId;
+        AssignedOrganizationDepartmentId = organizationDepartmentId;
+        AssignmentNeedsReview = false;
     }
+
+    public void MarkAssignmentForReview() => AssignmentNeedsReview = true;
 
     public void UpdatePriority(ReportPriority priority)
     {
