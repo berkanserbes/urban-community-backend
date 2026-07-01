@@ -11,6 +11,7 @@ using UrbanCommunity.Application.Features.Reports.Commands.DeleteReport;
 using UrbanCommunity.Application.Features.Reports.Commands.UpdateReport;
 using UrbanCommunity.Application.Features.Reports.Queries.GetAllowedReportStatusTransitions;
 using UrbanCommunity.Application.Features.Reports.Queries.GetManageableReports;
+using UrbanCommunity.Application.Features.Reports.Queries.GetReportAssignmentOptions;
 using UrbanCommunity.Application.Features.Reports.Queries.GetReportById;
 using UrbanCommunity.Application.Features.Reports.Queries.GetReports;
 using UrbanCommunity.Domain.Enums;
@@ -27,10 +28,16 @@ public class ReportsController(IMediator mediator) : ApiController
         [FromQuery] Guid? neighborhoodId,
         [FromQuery] ReportStatus? status,
         [FromQuery] Guid? categoryId,
-        [FromQuery] Guid? assignedDepartmentId,
+        [FromQuery] Guid? assignedOrganizationDepartmentId,
         CancellationToken cancellationToken)
     {
-        var result = await mediator.Send(new GetReportsQuery(neighborhoodId, status, categoryId, assignedDepartmentId), cancellationToken);
+        var result = await mediator.Send(
+            new GetReportsQuery(
+                neighborhoodId,
+                status,
+                categoryId,
+                assignedOrganizationDepartmentId),
+            cancellationToken);
         return Ok(result);
     }
 
@@ -52,7 +59,7 @@ public class ReportsController(IMediator mediator) : ApiController
         [FromQuery] Guid? neighborhoodId,
         [FromQuery] ReportStatus? status,
         [FromQuery] Guid? categoryId,
-        [FromQuery] Guid? assignedDepartmentId,
+        [FromQuery] Guid? assignedOrganizationDepartmentId,
         CancellationToken cancellationToken)
     {
         var result = await mediator.Send(
@@ -62,7 +69,7 @@ public class ReportsController(IMediator mediator) : ApiController
                 neighborhoodId,
                 status,
                 categoryId,
-                assignedDepartmentId),
+                assignedOrganizationDepartmentId),
             cancellationToken);
 
         return Ok(result);
@@ -84,6 +91,18 @@ public class ReportsController(IMediator mediator) : ApiController
                 id,
                 GetCurrentUserId(),
                 User.IsInRole("Admin")),
+            cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpGet("{id:guid}/assignment-options")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetAssignmentOptions(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(
+            new GetReportAssignmentOptionsQuery(id),
             cancellationToken);
         return Ok(result);
     }
@@ -156,7 +175,7 @@ public class ReportsController(IMediator mediator) : ApiController
     public async Task<IActionResult> AssignDepartment(Guid id, [FromBody] AssignDepartmentRequest request, CancellationToken cancellationToken)
     {
         var result = await mediator.Send(
-            new AssignDepartmentCommand(id, request.DepartmentId, GetCurrentUserId()),
+            new AssignDepartmentCommand(id, request.OrganizationDepartmentId, GetCurrentUserId()),
             cancellationToken);
         return Ok(result);
     }
@@ -204,5 +223,5 @@ public class ReportsController(IMediator mediator) : ApiController
 
     public sealed record ChangeReportStatusRequest(ReportStatus NewStatus, string? Note);
     public sealed record ChangeReportPriorityRequest(ReportPriority Priority);
-    public sealed record AssignDepartmentRequest(Guid? DepartmentId);
+    public sealed record AssignDepartmentRequest(Guid? OrganizationDepartmentId);
 }
