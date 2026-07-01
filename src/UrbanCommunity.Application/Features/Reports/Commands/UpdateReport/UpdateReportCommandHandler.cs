@@ -43,6 +43,9 @@ public sealed class UpdateReportCommandHandler(
             request.SuggestedCategoryId,
             report.CategoryId,
             cancellationToken);
+        var assignmentInputsChanged =
+            report.CategoryId != category.Id ||
+            report.NeighborhoodId != request.NeighborhoodId;
 
         var mediaResult = await UpdateMediaAsync(
             report,
@@ -60,6 +63,8 @@ public sealed class UpdateReportCommandHandler(
         report.Location = CreateLocation(request.Latitude, request.Longitude);
         report.CategoryId = category.Id;
         report.NeighborhoodId = request.NeighborhoodId;
+        if (assignmentInputsChanged && report.AssignedOrganizationDepartmentId.HasValue)
+            report.MarkAssignmentForReview();
         report.ChangeStatus(
             ReportStatus.AiReview,
             request.RequestingUserId,
@@ -220,6 +225,7 @@ public sealed class UpdateReportCommandHandler(
 
     private static Point? CreateLocation(double? latitude, double? longitude) =>
         latitude.HasValue && longitude.HasValue
+            && double.IsFinite(latitude.Value) && double.IsFinite(longitude.Value)
             ? new Point(longitude.Value, latitude.Value) { SRID = 4326 }
             : null;
 

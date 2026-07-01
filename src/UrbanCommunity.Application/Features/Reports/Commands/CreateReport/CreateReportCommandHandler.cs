@@ -143,6 +143,7 @@ public sealed class CreateReportCommandHandler(
     private static Point? CreateLocation(double? latitude, double? longitude)
     {
         return latitude.HasValue && longitude.HasValue
+            && double.IsFinite(latitude.Value) && double.IsFinite(longitude.Value)
             ? new Point(longitude.Value, latitude.Value) { SRID = 4326 }
             : null;
     }
