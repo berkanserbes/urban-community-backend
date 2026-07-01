@@ -1,14 +1,18 @@
+using MassTransit;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using UrbanCommunity.Application.Common.Exceptions;
 using UrbanCommunity.Application.Common.Models;
+using UrbanCommunity.Application.Events;
 using UrbanCommunity.Application.Interfaces;
 using UrbanCommunity.Domain.Entities;
 using UrbanCommunity.Domain.Enums;
 
 namespace UrbanCommunity.Application.Features.Suggestions.Commands.ChangeSuggestionStatus;
 
-public sealed class ChangeSuggestionStatusCommandHandler(IApplicationDbContext context)
+public sealed class ChangeSuggestionStatusCommandHandler(
+    IApplicationDbContext context,
+    IPublishEndpoint publishEndpoint)
     : IRequestHandler<ChangeSuggestionStatusCommand, Result<ChangeSuggestionStatusCommandResponse>>
 {
     public async Task<Result<ChangeSuggestionStatusCommandResponse>> Handle(
@@ -40,8 +44,19 @@ public sealed class ChangeSuggestionStatusCommandHandler(IApplicationDbContext c
                 [$"Geçersiz durum geçişi: {suggestion.Status} -> {request.NewStatus}. İzin verilen durumlar: {allowed}."]);
         }
 
+        var oldStatus = suggestion.Status;
         suggestion.ChangeStatus(request.NewStatus);
         await context.SaveChangesAsync(cancellationToken);
+
+        await publishEndpoint.Publish(new SuggestionStatusChangedEvent
+        {
+            SuggestionId = suggestion.Id,
+            SuggestionTitle = suggestion.Title,
+            SuggestionOwnerId = suggestion.UserId,
+            OldStatus = oldStatus,
+            NewStatus = suggestion.Status,
+            ChangedAt = DateTime.UtcNow
+        }, cancellationToken);
 
         return Result<ChangeSuggestionStatusCommandResponse>.Success(
             new ChangeSuggestionStatusCommandResponse(
