@@ -13,8 +13,10 @@ public static class DependencyInjection
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IAccessTokenSessionValidator, AccessTokenSessionValidator>();
         services.AddScoped<IRefreshTokenRevocationService, RefreshTokenRevocationService>();
+        services.AddSingleton<ITemporaryPasswordGenerator, TemporaryPasswordGenerator>();
         services.AddScoped<ISuggestionVoteService, SuggestionVoteService>();
         services.AddScoped<IReportManagementAuthorizationService, ReportManagementAuthorizationService>();
+        services.AddScoped<IOrganizationDepartmentAssignmentService, OrganizationDepartmentAssignmentService>();
         services.AddScoped<IAnnouncementAuthorizationService, AnnouncementAuthorizationService>();
         services.AddAiServices();
         services.AddFileServices();
