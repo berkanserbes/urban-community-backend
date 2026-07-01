@@ -11,5 +11,5 @@ public sealed record GetManageableReportsQuery(
     Guid? NeighborhoodId = null,
     ReportStatus? Status = null,
     Guid? CategoryId = null,
-    Guid? AssignedDepartmentId = null)
+    Guid? AssignedOrganizationDepartmentId = null)
     : IRequest<Result<IReadOnlyList<GetReportsQueryResponse>>>;

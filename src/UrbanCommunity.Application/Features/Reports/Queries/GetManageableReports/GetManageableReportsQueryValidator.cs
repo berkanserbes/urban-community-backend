@@ -20,8 +20,8 @@ public sealed class GetManageableReportsQueryValidator : AbstractValidator<GetMa
             .NotEmpty()
             .When(query => query.CategoryId.HasValue);
 
-        RuleFor(query => query.AssignedDepartmentId)
+        RuleFor(query => query.AssignedOrganizationDepartmentId)
             .NotEmpty()
-            .When(query => query.AssignedDepartmentId.HasValue);
+            .When(query => query.AssignedOrganizationDepartmentId.HasValue);
     }
 }

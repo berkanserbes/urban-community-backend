@@ -33,8 +33,10 @@ public sealed class GetManageableReportsQueryHandler(
         if (request.CategoryId.HasValue)
             query = query.Where(report => report.CategoryId == request.CategoryId.Value);
 
-        if (request.AssignedDepartmentId.HasValue)
-            query = query.Where(report => report.AssignedDepartmentId == request.AssignedDepartmentId.Value);
+        if (request.AssignedOrganizationDepartmentId.HasValue)
+            query = query.Where(report =>
+                report.AssignedOrganizationDepartmentId ==
+                request.AssignedOrganizationDepartmentId.Value);
 
         var reports = await query
             .OrderByDescending(report => report.CreatedAt)
@@ -47,12 +49,32 @@ public sealed class GetManageableReportsQueryHandler(
                 report.Location != null ? report.Location.Y : null,
                 report.Location != null ? report.Location.X : null,
                 report.UserId,
+                report.User.FirstName + " " + report.User.LastName,
                 report.CategoryId,
                 report.Category.Name,
                 report.NeighborhoodId,
                 report.Neighborhood.Name,
-                report.AssignedDepartmentId,
-                report.AssignedDepartment != null ? report.AssignedDepartment.Name : null,
+                report.AssignedOrganizationDepartmentId,
+                report.AssignedOrganizationDepartment != null
+                    ? report.AssignedOrganizationDepartment.OrganizationId
+                    : null,
+                report.AssignedOrganizationDepartment != null
+                    ? report.AssignedOrganizationDepartment.Organization.Name
+                    : null,
+                report.AssignedOrganizationDepartment != null
+                    ? report.AssignedOrganizationDepartment.DepartmentId
+                    : null,
+                report.AssignedOrganizationDepartment != null
+                    ? report.AssignedOrganizationDepartment.DisplayName ??
+                      report.AssignedOrganizationDepartment.Department.Name
+                    : null,
+                report.AssignedOrganizationDepartment != null
+                    ? report.AssignedOrganizationDepartment.ContactEmail
+                    : null,
+                report.AssignedOrganizationDepartment != null
+                    ? report.AssignedOrganizationDepartment.ContactPhone
+                    : null,
+                report.AssignmentNeedsReview,
                 report.CreatedAt,
                 report.ResolvedAt))
             .ToListAsync(cancellationToken);
