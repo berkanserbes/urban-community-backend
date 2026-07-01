@@ -27,17 +27,26 @@ public sealed class ReportCreatedConsumer(
             .Select(u => u.Id)
             .ToListAsync(consumeContext.CancellationToken);
 
-        var officialIds = await context.Users
+        var assignedOrganizationDepartmentId = await context.Reports
             .AsNoTracking()
-            .Where(user =>
-                user.IsActive &&
-                user.Role == UserRole.Official)
-            .WhereJurisdictionMatches(
-                evt.ProvinceId,
-                evt.DistrictId,
-                evt.NeighborhoodId)
-            .Select(user => user.Id)
-            .ToListAsync(consumeContext.CancellationToken);
+            .Where(report => report.Id == evt.ReportId)
+            .Select(report => report.AssignedOrganizationDepartmentId)
+            .SingleOrDefaultAsync(consumeContext.CancellationToken);
+
+        var officialIds = assignedOrganizationDepartmentId.HasValue
+            ? await context.Users
+                .AsNoTracking()
+                .Where(user =>
+                    user.IsActive &&
+                    user.Role == UserRole.Official &&
+                    user.OrganizationDepartmentId == assignedOrganizationDepartmentId.Value)
+                .WhereJurisdictionMatches(
+                    evt.ProvinceId,
+                    evt.DistrictId,
+                    evt.NeighborhoodId)
+                .Select(user => user.Id)
+                .ToListAsync(consumeContext.CancellationToken)
+            : [];
 
         var recipientIds = adminIds
             .Concat(officialIds)
@@ -74,11 +83,27 @@ public sealed class ReportCreatedConsumer(
             createdAt = evt.CreatedAt
         };
 
-        await Task.WhenAll(recipientIds.Select(userId =>
+        await Task.WhenAll(notifications.SelectMany(n => new[]
+        {
             notificationService.SendToUserAsync(
-                userId.ToString(),
+                n.UserId.ToString(),
+                "NewNotification",
+                new
+                {
+                    id = n.Id,
+                    title = n.Title,
+                    message = n.Message,
+                    isRead = n.IsRead,
+                    relatedEntityId = n.RelatedEntityId,
+                    relatedEntityType = n.RelatedEntityType?.ToString(),
+                    createdAt = n.CreatedAt
+                },
+                consumeContext.CancellationToken),
+            notificationService.SendToUserAsync(
+                n.UserId.ToString(),
                 "NewReport",
                 realtimePayload,
-                consumeContext.CancellationToken)));
+                consumeContext.CancellationToken)
+        }));
     }
 }
