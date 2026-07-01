@@ -8,22 +8,32 @@ namespace UrbanCommunity.Application.Features.Departments.Commands.DeleteAllDepa
 public sealed class DeleteAllDepartmentsCommandHandler(IApplicationDbContext context)
     : IRequestHandler<DeleteAllDepartmentsCommand, Result<DeleteAllDepartmentsCommandResponse>>
 {
-    public async Task<Result<DeleteAllDepartmentsCommandResponse>> Handle(DeleteAllDepartmentsCommand request, CancellationToken cancellationToken)
+    public async Task<Result<DeleteAllDepartmentsCommandResponse>> Handle(
+        DeleteAllDepartmentsCommand request,
+        CancellationToken cancellationToken)
     {
         var departments = await context.Departments.ToListAsync(cancellationToken);
 
         if (departments.Count == 0)
-            return Result<DeleteAllDepartmentsCommandResponse>.Failure(["Silinecek birim bulunamadı."]);
+        {
+            return Result<DeleteAllDepartmentsCommandResponse>.Failure(
+                ["Silinecek birim bulunamadı."]);
+        }
 
-        var departmentsWithAssignedReports = await context.Departments
-            .Where(d => context.Reports.AsNoTracking().Any(r => r.AssignedDepartmentId == d.Id))
+        var departmentsUsedByOrganizations = await context.Departments
+            .Where(department => context.OrganizationDepartments
+                .AsNoTracking()
+                .Any(localDepartment => localDepartment.DepartmentId == department.Id))
             .ToListAsync(cancellationToken);
 
-        if (departmentsWithAssignedReports.Count > 0)
+        if (departmentsUsedByOrganizations.Count > 0)
         {
-            var departmentNames = string.Join(", ", departmentsWithAssignedReports.Select(d => d.Name));
+            var departmentNames = string.Join(
+                ", ",
+                departmentsUsedByOrganizations.Select(department => department.Name));
+
             return Result<DeleteAllDepartmentsCommandResponse>.Failure(
-                [$"Bu birimlere ait ihbarlar bulunduğu için silinemez: {departmentNames}"]);
+                [$"Kurumlara bağlı yerel birimlerde kullanılan global birimler silinemez: {departmentNames}"]);
         }
 
         context.Departments.RemoveRange(departments);

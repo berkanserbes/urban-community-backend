@@ -9,32 +9,22 @@ namespace UrbanCommunity.Application.Features.Departments.Commands.DeleteDepartm
 public sealed class DeleteDepartmentCommandHandler(IApplicationDbContext context)
     : IRequestHandler<DeleteDepartmentCommand, Result<DeleteDepartmentCommandResponse>>
 {
-    public async Task<Result<DeleteDepartmentCommandResponse>> Handle(DeleteDepartmentCommand request, CancellationToken cancellationToken)
+    public async Task<Result<DeleteDepartmentCommandResponse>> Handle(
+        DeleteDepartmentCommand request,
+        CancellationToken cancellationToken)
     {
         var department = await context.Departments
-            .FirstOrDefaultAsync(d => d.Id == request.Id, cancellationToken);
+            .FirstOrDefaultAsync(value => value.Id == request.Id, cancellationToken)
+            ?? throw new NotFoundException("Department", request.Id);
 
-        if (department is null)
-        {
-            throw new NotFoundException("Department", request.Id);
-        }
-
-        var hasOfficials = await context.Users
+        var isUsedByOrganization = await context.OrganizationDepartments
             .AsNoTracking()
-            .AnyAsync(u => u.DepartmentId == request.Id, cancellationToken);
+            .AnyAsync(value => value.DepartmentId == request.Id, cancellationToken);
 
-        if (hasOfficials)
+        if (isUsedByOrganization)
         {
-            return Result<DeleteDepartmentCommandResponse>.Failure(["Bu birime atanış personel bulunduğu için silinemez."]);
-        }
-
-        var hasReports = await context.Reports
-            .AsNoTracking()
-            .AnyAsync(r => r.AssignedDepartmentId == request.Id, cancellationToken);
-
-        if (hasReports)
-        {
-            return Result<DeleteDepartmentCommandResponse>.Failure(["Bu birime atanış raporlar bulunduğu için silinemez."]);
+            return Result<DeleteDepartmentCommandResponse>.Failure(
+                ["Bu global birim kurumlara bağlı yerel birimlerde kullanıldığı için silinemez."]);
         }
 
         context.Departments.Remove(department);
