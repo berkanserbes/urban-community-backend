@@ -5,5 +5,5 @@ namespace UrbanCommunity.Application.Features.Reports.Commands.AssignDepartment;
 
 public sealed record AssignDepartmentCommand(
     Guid ReportId,
-    Guid? DepartmentId,
+    Guid? OrganizationDepartmentId,
     Guid ChangedByUserId) : IRequest<Result<AssignDepartmentCommandResponse>>;

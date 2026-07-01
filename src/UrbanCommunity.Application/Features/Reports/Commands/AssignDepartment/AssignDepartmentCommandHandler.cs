@@ -12,7 +12,8 @@ namespace UrbanCommunity.Application.Features.Reports.Commands.AssignDepartment;
 
 public sealed class AssignDepartmentCommandHandler(
     IApplicationDbContext context,
-    IPublishEndpoint publishEndpoint)
+    IPublishEndpoint publishEndpoint,
+    IOrganizationDepartmentAssignmentService assignmentService)
     : IRequestHandler<AssignDepartmentCommand, Result<AssignDepartmentCommandResponse>>
 {
     public async Task<Result<AssignDepartmentCommandResponse>> Handle(
@@ -22,22 +23,25 @@ public sealed class AssignDepartmentCommandHandler(
         var report = await context.Reports
             .Include(candidate => candidate.Neighborhood)
                 .ThenInclude(neighborhood => neighborhood.DistrictNavigation)
-            .FirstOrDefaultAsync(r => r.Id == request.ReportId, cancellationToken)
+            .FirstOrDefaultAsync(candidate => candidate.Id == request.ReportId, cancellationToken)
             ?? throw new NotFoundException(nameof(Report), request.ReportId);
 
-        Department? department = null;
-
-        if (request.DepartmentId.HasValue)
+        OrganizationDepartmentAssignment? assignment = null;
+        if (request.OrganizationDepartmentId.HasValue)
         {
-            department = await context.Departments
-                .AsNoTracking()
-                .FirstOrDefaultAsync(d => d.Id == request.DepartmentId.Value, cancellationToken)
-                ?? throw new NotFoundException(nameof(Department), request.DepartmentId.Value);
+            assignment = await assignmentService.GetCompatibleAsync(
+                request.OrganizationDepartmentId.Value,
+                report.NeighborhoodId,
+                cancellationToken)
+                ?? throw new ForbiddenAccessException(
+                    "Seçilen kurum birimi raporun coğrafi kapsamıyla uyumlu değil.");
         }
 
-        if (report.AssignedDepartmentId == request.DepartmentId)
+        if (report.AssignedOrganizationDepartmentId == request.OrganizationDepartmentId)
+        {
             return Result<AssignDepartmentCommandResponse>.Failure(
-                ["Rapor zaten belirtilen birime atanmış durumda."]);
+                ["Rapor zaten belirtilen kurum birimine atanmış durumda."]);
+        }
 
         if (report.Status is not (ReportStatus.Confirmed or ReportStatus.InProgress))
         {
@@ -46,17 +50,17 @@ public sealed class AssignDepartmentCommandHandler(
         }
 
         var previousStatus = report.Status;
+        report.AssignOrganizationDepartment(request.OrganizationDepartmentId);
 
-        report.AssignDepartment(request.DepartmentId);
-
-        if (request.DepartmentId.HasValue && report.Status == ReportStatus.Confirmed)
+        if (request.OrganizationDepartmentId.HasValue && report.Status == ReportStatus.Confirmed)
         {
             report.ChangeStatus(
                 ReportStatus.InProgress,
                 request.ChangedByUserId,
-                $"Rapor {department!.Name} birimine atandı ve işleme alındı.");
+                $"Rapor {assignment!.DepartmentName} birimine atandı ve işleme alındı.");
         }
-        else if (!request.DepartmentId.HasValue && report.Status == ReportStatus.InProgress)
+        else if (!request.OrganizationDepartmentId.HasValue &&
+                 report.Status == ReportStatus.InProgress)
         {
             report.ChangeStatus(
                 ReportStatus.Confirmed,
@@ -65,7 +69,6 @@ public sealed class AssignDepartmentCommandHandler(
         }
 
         await context.SaveChangesAsync(cancellationToken);
-
         var changedAt = DateTime.UtcNow;
 
         await publishEndpoint.Publish(new ReportDepartmentChangedEvent
@@ -76,8 +79,11 @@ public sealed class AssignDepartmentCommandHandler(
             ProvinceId = report.Neighborhood.DistrictNavigation.ProvinceId,
             DistrictId = report.Neighborhood.DistrictId,
             NeighborhoodId = report.NeighborhoodId,
-            DepartmentId = department?.Id,
-            DepartmentName = department?.Name,
+            OrganizationDepartmentId = assignment?.OrganizationDepartmentId,
+            OrganizationId = assignment?.OrganizationId,
+            OrganizationName = assignment?.OrganizationName,
+            DepartmentId = assignment?.DepartmentId,
+            DepartmentName = assignment?.DepartmentName,
             ChangedAt = changedAt
         }, cancellationToken);
 
@@ -90,17 +96,17 @@ public sealed class AssignDepartmentCommandHandler(
                 ReportOwnerId = report.UserId,
                 OldStatus = previousStatus,
                 NewStatus = report.Status,
-                Note = request.DepartmentId.HasValue
-                    ? $"Rapor {department!.Name} birimine atandı."
+                Note = request.OrganizationDepartmentId.HasValue
+                    ? $"Rapor {assignment!.DepartmentName} birimine atandı."
                     : "Raporun birim ataması kaldırıldı.",
                 ChangedAt = changedAt
             }, cancellationToken);
         }
 
-        var message = request.DepartmentId.HasValue
+        var message = request.OrganizationDepartmentId.HasValue
             ? previousStatus == ReportStatus.Confirmed
-                ? $"Rapor {department!.Name} birimine atandı ve işleme alındı."
-                : $"Rapor {department!.Name} birimine atandı."
+                ? $"Rapor {assignment!.DepartmentName} birimine atandı ve işleme alındı."
+                : $"Rapor {assignment!.DepartmentName} birimine atandı."
             : previousStatus == ReportStatus.InProgress
                 ? "Raporun birim ataması kaldırıldı ve durumu onaylandı olarak güncellendi."
                 : "Raporun birim ataması kaldırıldı.";
@@ -108,8 +114,11 @@ public sealed class AssignDepartmentCommandHandler(
         return Result<AssignDepartmentCommandResponse>.Success(
             new AssignDepartmentCommandResponse(
                 report.Id,
-                department?.Id,
-                department?.Name,
+                assignment?.OrganizationDepartmentId,
+                assignment?.OrganizationId,
+                assignment?.OrganizationName,
+                assignment?.DepartmentId,
+                assignment?.DepartmentName,
                 report.Status,
                 changedAt,
                 message));

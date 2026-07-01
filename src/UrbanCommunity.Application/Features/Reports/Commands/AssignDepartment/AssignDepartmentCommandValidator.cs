@@ -9,9 +9,9 @@ public sealed class AssignDepartmentCommandValidator : AbstractValidator<AssignD
         RuleFor(x => x.ReportId)
             .NotEmpty().WithMessage("Rapor kimliği gereklidir.");
 
-        RuleFor(x => x.DepartmentId)
+        RuleFor(x => x.OrganizationDepartmentId)
             .NotEmpty().WithMessage("Birim kimliği boş olamaz.")
-            .When(x => x.DepartmentId.HasValue);
+            .When(x => x.OrganizationDepartmentId.HasValue);
 
         RuleFor(x => x.ChangedByUserId)
             .NotEmpty().WithMessage("İşlemi yapan kullanıcı kimliği gereklidir.");
