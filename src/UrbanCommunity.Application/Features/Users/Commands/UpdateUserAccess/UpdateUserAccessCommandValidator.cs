@@ -12,7 +12,7 @@ public sealed class UpdateUserAccessCommandValidator : AbstractValidator<UpdateU
 
         When(command => command.Role == UserRole.Official, () =>
         {
-            RuleFor(command => command.DepartmentId)
+            RuleFor(command => command.OrganizationDepartmentId)
                 .NotEmpty()
                 .WithMessage("Official rolü için departman zorunludur.");
 
@@ -28,7 +28,7 @@ public sealed class UpdateUserAccessCommandValidator : AbstractValidator<UpdateU
 
         When(command => command.Role != UserRole.Official, () =>
         {
-            RuleFor(command => command.DepartmentId)
+            RuleFor(command => command.OrganizationDepartmentId)
                 .Null()
                 .WithMessage("Departman yalnızca Official rolü için atanabilir.");
 

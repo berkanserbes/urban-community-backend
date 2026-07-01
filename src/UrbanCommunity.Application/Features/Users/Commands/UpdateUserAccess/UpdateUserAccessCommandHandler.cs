@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using UrbanCommunity.Application.Common.Exceptions;
 using UrbanCommunity.Application.Common.Models;
 using UrbanCommunity.Application.Interfaces;
+using UrbanCommunity.Application.Features.Users;
 using UrbanCommunity.Domain.Entities;
 using UrbanCommunity.Domain.Enums;
 
@@ -21,22 +22,39 @@ public sealed class UpdateUserAccessCommandHandler(
             .FirstOrDefaultAsync(user => user.Id == request.UserId, cancellationToken)
             ?? throw new NotFoundException(nameof(User), request.UserId);
 
+        if (request.RequestingUserId == user.Id && request.Role != user.Role)
+        {
+            return Result<UpdateUserAccessCommandResponse>.Failure(
+                ["Admin kendi rolünü değiştiremez."]);
+        }
+
+        if (user.Role == UserRole.Admin && request.Role != UserRole.Admin)
+        {
+            var activeAdminCount = await context.Users.CountAsync(
+                candidate => candidate.Role == UserRole.Admin && candidate.IsActive,
+                cancellationToken);
+            if (activeAdminCount <= 1)
+            {
+                return Result<UpdateUserAccessCommandResponse>.Failure(
+                    ["Son aktif Admin hesabının rolü değiştirilemez."]);
+            }
+        }
+
+        string? organizationName = null;
         string? departmentName = null;
         string? jurisdictionName = null;
 
         if (request.Role == UserRole.Official)
         {
-            departmentName = await context.Departments
-                .AsNoTracking()
-                .Where(department => department.Id == request.DepartmentId)
-                .Select(department => department.Name)
-                .FirstOrDefaultAsync(cancellationToken)
-                ?? throw new NotFoundException(nameof(Department), request.DepartmentId!.Value);
-
-            jurisdictionName = await ResolveJurisdictionNameAsync(
+            var validatedAccess = await OfficialAccessValidation.ValidateAsync(
+                context,
+                request.OrganizationDepartmentId!.Value,
                 request.OfficialJurisdictionLevel!.Value,
                 request.OfficialJurisdictionId!.Value,
                 cancellationToken);
+            organizationName = validatedAccess.OrganizationName;
+            departmentName = validatedAccess.DepartmentName;
+            jurisdictionName = validatedAccess.JurisdictionName;
         }
 
         var currentJurisdictionId = user.OfficialProvinceId ??
@@ -45,13 +63,13 @@ public sealed class UpdateUserAccessCommandHandler(
 
         var accessChanged =
             user.Role != request.Role ||
-            user.DepartmentId != request.DepartmentId ||
+            user.OrganizationDepartmentId != request.OrganizationDepartmentId ||
             user.OfficialJurisdictionLevel != request.OfficialJurisdictionLevel ||
             currentJurisdictionId != request.OfficialJurisdictionId;
 
         user.UpdateAccess(
             request.Role,
-            request.DepartmentId,
+            request.OrganizationDepartmentId,
             request.OfficialJurisdictionLevel,
             request.OfficialJurisdictionId);
 
@@ -72,41 +90,12 @@ public sealed class UpdateUserAccessCommandHandler(
                 user.LastName,
                 user.Email!,
                 user.Role,
-                user.DepartmentId,
+                user.OrganizationDepartmentId,
+                organizationName,
                 departmentName,
                 user.OfficialJurisdictionLevel,
                 request.Role == UserRole.Official ? request.OfficialJurisdictionId : null,
                 jurisdictionName));
     }
 
-    private async Task<string> ResolveJurisdictionNameAsync(
-        OfficialJurisdictionLevel level,
-        Guid jurisdictionId,
-        CancellationToken cancellationToken)
-    {
-        var name = level switch
-        {
-            OfficialJurisdictionLevel.Province => await context.Provinces
-                .AsNoTracking()
-                .Where(province => province.Id == jurisdictionId)
-                .Select(province => province.Name)
-                .FirstOrDefaultAsync(cancellationToken),
-
-            OfficialJurisdictionLevel.District => await context.Districts
-                .AsNoTracking()
-                .Where(district => district.Id == jurisdictionId)
-                .Select(district => district.Name)
-                .FirstOrDefaultAsync(cancellationToken),
-
-            OfficialJurisdictionLevel.Neighborhood => await context.Neighborhoods
-                .AsNoTracking()
-                .Where(neighborhood => neighborhood.Id == jurisdictionId)
-                .Select(neighborhood => neighborhood.Name)
-                .FirstOrDefaultAsync(cancellationToken),
-
-            _ => null
-        };
-
-        return name ?? throw new NotFoundException(level.ToString(), jurisdictionId);
-    }
 }

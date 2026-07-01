@@ -7,7 +7,8 @@ namespace UrbanCommunity.Application.Features.Users.Commands.UpdateUserAccess;
 public sealed record UpdateUserAccessCommand(
     Guid UserId,
     UserRole Role,
-    Guid? DepartmentId,
+    Guid? OrganizationDepartmentId,
     OfficialJurisdictionLevel? OfficialJurisdictionLevel,
-    Guid? OfficialJurisdictionId)
+    Guid? OfficialJurisdictionId,
+    Guid? RequestingUserId = null)
     : IRequest<Result<UpdateUserAccessCommandResponse>>;
