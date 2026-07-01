@@ -11,6 +11,7 @@ using UrbanCommunity.Application.Features.Announcements.Commands.DeleteAnnouncem
 using UrbanCommunity.Application.Features.Announcements.Commands.UpdateAnnouncement;
 using UrbanCommunity.Application.Features.Announcements.Queries.GetAnnouncementById;
 using UrbanCommunity.Application.Features.Announcements.Queries.GetAnnouncements;
+using UrbanCommunity.Application.Features.Announcements.Queries.GetManageableAnnouncements;
 using UrbanCommunity.Domain.Enums;
 
 namespace UrbanCommunity.Api.Controllers;
@@ -38,6 +39,16 @@ public class AnnouncementsController(IMediator mediator) : ApiController
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
         var result = await mediator.Send(new GetAnnouncementByIdQuery(id), cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpGet("manageable")]
+    [Authorize(Roles = "Admin,Official")]
+    public async Task<IActionResult> GetManageable(CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(
+            new GetManageableAnnouncementsQuery(GetCurrentUserId(), User.IsInRole("Admin")),
+            cancellationToken);
         return Ok(result);
     }
 
