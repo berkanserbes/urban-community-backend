@@ -24,6 +24,6 @@ public interface IReportManagementAuthorizationService
 public sealed record ReportManagementAccess(
     bool IsAdmin,
     Guid RequestingUserId,
-    Guid? DepartmentId,
+    Guid? OrganizationDepartmentId,
     OfficialJurisdictionLevel? JurisdictionLevel,
     Guid? JurisdictionId);

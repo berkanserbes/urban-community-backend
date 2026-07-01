@@ -32,7 +32,7 @@ public sealed class GetAllowedReportStatusTransitionsQueryHandler(
                 .Where(status => status != Domain.Enums.ReportStatus.AiReview)
                 .Where(status =>
                     status != Domain.Enums.ReportStatus.InProgress ||
-                    report.AssignedDepartmentId.HasValue)
+                    report.AssignedOrganizationDepartmentId.HasValue)
                 .ToList();
 
         return Result<GetAllowedReportStatusTransitionsQueryResponse>.Success(
