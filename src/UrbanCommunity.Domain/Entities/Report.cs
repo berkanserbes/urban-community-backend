@@ -84,11 +84,11 @@ public class Report : BaseEntity
         return GetAllowedNextStatuses().Contains(newStatus);
     }
 
-    public void ChangeStatus(ReportStatus newStatus, Guid? changedByUserId = null, string? note = null)
+    public ReportHistory? ChangeStatus(ReportStatus newStatus, Guid? changedByUserId = null, string? note = null)
     {
         if (newStatus == Status)
         {
-            return;
+            return null;
         }
 
         if (!CanTransitionTo(newStatus))
@@ -101,14 +101,17 @@ public class Report : BaseEntity
         Status = newStatus;
         ResolvedAt = newStatus == ReportStatus.Resolved ? DateTime.UtcNow : null;
 
-        History.Add(new ReportHistory
+        var history = new ReportHistory
         {
             ReportId = Id,
             FromStatus = previousStatus,
             ToStatus = newStatus,
             Note = string.IsNullOrWhiteSpace(note) ? null : note.Trim(),
             ChangedByUserId = changedByUserId
-        });
+        };
+
+        History.Add(history);
+        return history;
     }
 
     public void AssignOrganizationDepartment(Guid? organizationDepartmentId)

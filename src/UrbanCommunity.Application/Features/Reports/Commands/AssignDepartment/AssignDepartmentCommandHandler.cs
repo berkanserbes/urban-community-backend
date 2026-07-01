@@ -54,18 +54,22 @@ public sealed class AssignDepartmentCommandHandler(
 
         if (request.OrganizationDepartmentId.HasValue && report.Status == ReportStatus.Confirmed)
         {
-            report.ChangeStatus(
+            var history = report.ChangeStatus(
                 ReportStatus.InProgress,
                 request.ChangedByUserId,
                 $"Rapor {assignment!.DepartmentName} birimine atandı ve işleme alındı.");
+            if (history is not null)
+                context.ReportHistories.Add(history);
         }
         else if (!request.OrganizationDepartmentId.HasValue &&
                  report.Status == ReportStatus.InProgress)
         {
-            report.ChangeStatus(
+            var history = report.ChangeStatus(
                 ReportStatus.Confirmed,
                 request.ChangedByUserId,
                 "Birim ataması kaldırıldığı için rapor onaylandı durumuna alındı.");
+            if (history is not null)
+                context.ReportHistories.Add(history);
         }
 
         await context.SaveChangesAsync(cancellationToken);

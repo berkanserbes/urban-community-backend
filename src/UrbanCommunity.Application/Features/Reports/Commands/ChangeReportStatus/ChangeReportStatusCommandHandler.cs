@@ -46,22 +46,31 @@ public sealed class ChangeReportStatusCommandHandler(
                 ["Rapor işleme alınmadan önce bir birime atanmalıdır."]);
         }
 
-        report.ChangeStatus(request.NewStatus, request.RequestingUserId, request.Note);
+        var history = report.ChangeStatus(request.NewStatus, request.RequestingUserId, request.Note);
+        if (history is not null)
+            context.ReportHistories.Add(history);
 
         await context.SaveChangesAsync(cancellationToken);
 
         var changedAt = DateTime.UtcNow;
 
-        await publishEndpoint.Publish(new ReportStatusChangedEvent
+        try
         {
-            ReportId = report.Id,
-            ReportTitle = report.Title,
-            ReportOwnerId = report.UserId,
-            OldStatus = oldStatus,
-            NewStatus = report.Status,
-            Note = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim(),
-            ChangedAt = changedAt
-        }, cancellationToken);
+            await publishEndpoint.Publish(new ReportStatusChangedEvent
+            {
+                ReportId = report.Id,
+                ReportTitle = report.Title,
+                ReportOwnerId = report.UserId,
+                OldStatus = oldStatus,
+                NewStatus = report.Status,
+                Note = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim(),
+                ChangedAt = changedAt
+            }, cancellationToken);
+        }
+        catch
+        {
+            // Bildirim gönderme başarısız olursa ana işlem etkilenmemeli.
+        }
 
         return Result<ChangeReportStatusCommandResponse>.Success(
             new ChangeReportStatusCommandResponse(

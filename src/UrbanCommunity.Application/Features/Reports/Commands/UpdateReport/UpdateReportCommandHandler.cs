@@ -65,10 +65,13 @@ public sealed class UpdateReportCommandHandler(
         report.NeighborhoodId = request.NeighborhoodId;
         if (assignmentInputsChanged && report.AssignedOrganizationDepartmentId.HasValue)
             report.MarkAssignmentForReview();
-        report.ChangeStatus(
+        var history = report.ChangeStatus(
             ReportStatus.AiReview,
             request.RequestingUserId,
             "Rapor güncellendi; AI incelemesine alındı.");
+
+        if (history is not null)
+            context.ReportHistories.Add(history);
 
         try
         {
