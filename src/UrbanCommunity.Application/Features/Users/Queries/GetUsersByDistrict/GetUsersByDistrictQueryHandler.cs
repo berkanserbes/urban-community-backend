@@ -38,7 +38,20 @@ public sealed class GetUsersByDistrictQueryHandler(IApplicationDbContext context
                 u.ProfileImageUrl,
                 u.NeighborhoodId,
                 u.Neighborhood != null ? u.Neighborhood.Name : null,
-                u.DepartmentId,
+                u.OrganizationDepartmentId,
+                u.OrganizationDepartment != null
+                    ? u.OrganizationDepartment.OrganizationId
+                    : null,
+                u.OrganizationDepartment != null
+                    ? u.OrganizationDepartment.Organization.Name
+                    : null,
+                u.OrganizationDepartment != null
+                    ? u.OrganizationDepartment.DepartmentId
+                    : null,
+                u.OrganizationDepartment != null
+                    ? u.OrganizationDepartment.DisplayName ??
+                      u.OrganizationDepartment.Department.Name
+                    : null,
                 u.OfficialJurisdictionLevel,
                 u.OfficialProvinceId ?? u.OfficialDistrictId ?? u.OfficialNeighborhoodId,
                 u.OfficialJurisdictionLevel == Domain.Enums.OfficialJurisdictionLevel.Province

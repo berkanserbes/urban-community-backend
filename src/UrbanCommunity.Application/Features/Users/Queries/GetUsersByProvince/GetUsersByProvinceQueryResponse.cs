@@ -12,7 +12,11 @@ public sealed record GetUsersByProvinceQueryResponse(
     string? ProfileImageUrl,
     Guid? NeighborhoodId,
     string? NeighborhoodName,
+    Guid? OrganizationDepartmentId,
+    Guid? OrganizationId,
+    string? OrganizationName,
     Guid? DepartmentId,
+    string? DepartmentName,
     OfficialJurisdictionLevel? OfficialJurisdictionLevel,
     Guid? OfficialJurisdictionId,
     string? OfficialJurisdictionName);
