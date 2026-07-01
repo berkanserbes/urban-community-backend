@@ -18,10 +18,8 @@ public sealed class GetDepartmentWithStatsQueryHandler(IApplicationDbContext con
                 d.Id,
                 d.Name,
                 d.Description,
-                d.ContactEmail,
-                d.ContactPhone,
-                d.Officials.Count,
-                d.AssignedReports.Count))
+                d.OrganizationDepartments.SelectMany(value => value.Officials).Count(),
+                d.OrganizationDepartments.SelectMany(value => value.AssignedReports).Count()))
             .ToListAsync(cancellationToken);
 
         return Result<IReadOnlyList<GetDepartmentWithStatsQueryResponse>>.Success(departments);
