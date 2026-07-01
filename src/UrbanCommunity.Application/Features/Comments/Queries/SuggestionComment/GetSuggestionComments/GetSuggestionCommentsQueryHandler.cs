@@ -28,7 +28,7 @@ public sealed class GetSuggestionCommentsQueryHandler(IApplicationDbContext cont
             .Select(comment => new GetSuggestionCommentsQueryResponse(
                 comment.Id,
                 comment.UserId,
-                comment.User.FullName,
+                comment.User?.FullName ?? "Silinmiş Kullanıcı",
                 comment.Content,
                 comment.CreatedAt,
                 comment.UpdatedAt))

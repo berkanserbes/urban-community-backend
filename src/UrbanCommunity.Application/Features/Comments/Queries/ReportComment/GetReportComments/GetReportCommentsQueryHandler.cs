@@ -28,7 +28,7 @@ public sealed class GetReportCommentsQueryHandler(IApplicationDbContext context)
             .Select(comment => new GetReportCommentsQueryResponse(
                 comment.Id,
                 comment.UserId,
-                comment.User.FullName,
+                comment.User?.FullName ?? "Silinmiş Kullanıcı",
                 comment.Content,
                 comment.CreatedAt,
                 comment.UpdatedAt))
