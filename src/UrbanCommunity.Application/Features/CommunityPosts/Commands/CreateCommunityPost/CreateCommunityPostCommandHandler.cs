@@ -113,10 +113,23 @@ public sealed class CreateCommunityPostCommandHandler(
         for (var index = 0; index < media.Count; index++)
         {
             var file = media[index];
-            var url = await fileService.UploadFileAsync(
-                file,
-                "community-posts",
-                cancellationToken);
+            string url;
+
+            try
+            {
+                url = await fileService.UploadFileAsync(
+                    file,
+                    "community-posts",
+                    cancellationToken);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch
+            {
+                return false;
+            }
 
             if (string.IsNullOrWhiteSpace(url))
                 return false;

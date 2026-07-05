@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using NetTopologySuite.Geometries;
 using UrbanCommunity.Domain.Common;
 using UrbanCommunity.Domain.Entities;
 
@@ -99,9 +100,9 @@ public sealed class AuditInterceptor(IHttpContextAccessor httpContextAccessor)
                 continue;
 
             if (entry.State is EntityState.Modified or EntityState.Deleted)
-                oldValues[property.Metadata.Name] = property.OriginalValue;
+                oldValues[property.Metadata.Name] = NormalizeAuditValue(property.OriginalValue);
             if (entry.State is EntityState.Modified or EntityState.Added)
-                newValues[property.Metadata.Name] = property.CurrentValue;
+                newValues[property.Metadata.Name] = NormalizeAuditValue(property.CurrentValue);
         }
 
         if (oldValues.Count == 0 && newValues.Count == 0)
@@ -117,6 +118,33 @@ public sealed class AuditInterceptor(IHttpContextAccessor httpContextAccessor)
             NewValues = newValues.Count == 0 ? null : JsonSerializer.Serialize(newValues),
         };
     }
+
+    private static object? NormalizeAuditValue(object? value)
+    {
+        return value switch
+        {
+            Point point => new Dictionary<string, object?>
+            {
+                ["type"] = point.GeometryType,
+                ["srid"] = point.SRID,
+                ["longitude"] = ToFiniteOrNull(point.X),
+                ["latitude"] = ToFiniteOrNull(point.Y),
+                ["wkt"] = point.AsText()
+            },
+            Geometry geometry => new Dictionary<string, object?>
+            {
+                ["type"] = geometry.GeometryType,
+                ["srid"] = geometry.SRID,
+                ["wkt"] = geometry.AsText()
+            },
+            double doubleValue => ToFiniteOrNull(doubleValue),
+            float floatValue => float.IsFinite(floatValue) ? floatValue : null,
+            _ => value
+        };
+    }
+
+    private static double? ToFiniteOrNull(double value) =>
+        double.IsFinite(value) ? value : null;
 
     private static string ResolveEntityId(EntityEntry entry)
     {

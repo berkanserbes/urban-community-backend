@@ -5,7 +5,9 @@ using UrbanCommunity.Domain.Enums;
 namespace UrbanCommunity.Application.Features.Reports.Queries.GetReports;
 
 public sealed record GetReportsQuery(
-    Guid? NeighborhoodId = null,
+    Guid? RequestingUserId = null,
+    bool IsOfficial = false,
+    string? Scope = null,
     ReportStatus? Status = null,
     Guid? CategoryId = null,
     Guid? AssignedOrganizationDepartmentId = null,

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using NetTopologySuite.Geometries;
 using UrbanCommunity.Domain.Entities;
 using UrbanCommunity.Domain.Enums;
 using UrbanCommunity.Infrastructure.Persistence;
@@ -83,6 +84,32 @@ public sealed class AuditInterceptorTests
         Assert.DoesNotContain(nameof(Province), auditedEntityTypes);
         Assert.DoesNotContain(nameof(District), auditedEntityTypes);
         Assert.DoesNotContain(nameof(Neighborhood), auditedEntityTypes);
+    }
+
+    [Fact]
+    public async Task SaveChanges_WritesReportLocationAuditAsJsonSafeValue()
+    {
+        await using var context = CreateContext();
+        var data = CreateDomainGraph();
+        data.Report.Location = new Point(29.062753837240315, 40.29688491208338) { SRID = 4326 };
+
+        context.AddRange(
+            data.Province,
+            data.District,
+            data.Neighborhood,
+            data.User,
+            data.Category,
+            data.Report);
+
+        await context.SaveChangesAsync();
+
+        var audit = await context.AuditLogs.AsNoTracking()
+            .SingleAsync(value => value.EntityType == nameof(Report));
+
+        Assert.Contains("\"Location\"", audit.NewValues);
+        Assert.Contains("\"longitude\":29.062753837240315", audit.NewValues);
+        Assert.Contains("\"latitude\":40.29688491208338", audit.NewValues);
+        Assert.Contains("\"srid\":4326", audit.NewValues);
     }
 
     [Fact]

@@ -66,7 +66,21 @@ public sealed class CreateReportCommandHandler(
                 for (var i = 0; i < request.Media.Count; i++)
                 {
                     var file = request.Media[i];
-                    var url = await fileService.UploadFileAsync(file, "reports", cancellationToken);
+                    string url;
+
+                    try
+                    {
+                        url = await fileService.UploadFileAsync(file, "reports", cancellationToken);
+                    }
+                    catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                    {
+                        throw;
+                    }
+                    catch
+                    {
+                        await DeleteFilesBestEffortAsync(uploadedUrls, cancellationToken);
+                        return Result<CreateReportCommandResponse>.Failure(["Medya dosyası yüklenemedi. Lütfen tekrar deneyin."]);
+                    }
 
                     if (string.IsNullOrWhiteSpace(url))
                     {
@@ -142,10 +156,19 @@ public sealed class CreateReportCommandHandler(
 
     private static Point? CreateLocation(double? latitude, double? longitude)
     {
-        return latitude.HasValue && longitude.HasValue
-            && double.IsFinite(latitude.Value) && double.IsFinite(longitude.Value)
-            ? new Point(longitude.Value, latitude.Value) { SRID = 4326 }
+        return TryGetCoordinate(latitude, -90, 90, out var validLatitude) &&
+            TryGetCoordinate(longitude, -180, 180, out var validLongitude)
+            ? new Point(validLongitude, validLatitude) { SRID = 4326 }
             : null;
+    }
+
+    private static bool TryGetCoordinate(double? value, double min, double max, out double coordinate)
+    {
+        coordinate = value.GetValueOrDefault();
+        return value.HasValue &&
+            double.IsFinite(coordinate) &&
+            coordinate >= min &&
+            coordinate <= max;
     }
 
     private async Task DeleteFilesBestEffortAsync(IEnumerable<string> urls, CancellationToken cancellationToken)

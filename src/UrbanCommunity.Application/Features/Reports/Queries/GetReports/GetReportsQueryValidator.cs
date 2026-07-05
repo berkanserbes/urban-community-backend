@@ -6,9 +6,9 @@ public sealed class GetReportsQueryValidator : AbstractValidator<GetReportsQuery
 {
     public GetReportsQueryValidator()
     {
-        RuleFor(x => x.NeighborhoodId)
-            .NotEmpty().WithMessage("Mahalle kimliği boş olamaz.")
-            .When(x => x.NeighborhoodId.HasValue);
+        RuleFor(x => x.Scope)
+            .Must(s => s is null || s is "Neighborhood" or "District" or "Province")
+            .WithMessage("Geçerli bir kapsam seçilmelidir (Neighborhood, District, Province).");
 
         RuleFor(x => x.Status)
             .IsInEnum().WithMessage("Geçerli bir rapor durumu seçilmelidir.")

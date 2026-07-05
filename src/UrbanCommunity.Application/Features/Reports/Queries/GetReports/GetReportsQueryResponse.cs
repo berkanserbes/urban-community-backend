@@ -24,5 +24,6 @@ public sealed record GetReportsQueryResponse(
     string? AssignedDepartmentContactEmail,
     string? AssignedDepartmentContactPhone,
     bool AssignmentNeedsReview,
+    int SimilarReportCount,
     DateTime CreatedAt,
     DateTime? ResolvedAt);

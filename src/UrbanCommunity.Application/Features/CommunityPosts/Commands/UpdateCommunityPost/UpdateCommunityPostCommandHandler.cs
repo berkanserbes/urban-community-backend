@@ -127,10 +127,28 @@ public sealed class UpdateCommunityPostCommandHandler(
             for (var index = 0; index < replacementMedia.Count; index++)
             {
                 var file = replacementMedia[index];
-                var url = await fileService.UploadFileAsync(
-                    file,
-                    "community-posts",
-                    cancellationToken);
+                string url;
+
+                try
+                {
+                    url = await fileService.UploadFileAsync(
+                        file,
+                        "community-posts",
+                        cancellationToken);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    throw;
+                }
+                catch
+                {
+                    await DeleteFilesSafelyAsync(
+                        uploadedMedia.Select(media => media.Url),
+                        "medya yüklemesi hata verdiği için");
+
+                    return MediaUpdatePreparation.Failure(
+                        "Medya dosyası yüklenemedi. Lütfen tekrar deneyin.");
+                }
 
                 if (string.IsNullOrWhiteSpace(url))
                 {

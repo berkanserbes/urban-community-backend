@@ -75,6 +75,11 @@ public sealed class GetManageableReportsQueryHandler(
                     ? report.AssignedOrganizationDepartment.ContactPhone
                     : null,
                 report.AssignmentNeedsReview,
+                report.SimilarReportMatches
+                    .Select(match => match.SimilarReportId)
+                    .Concat(report.ReferencedAsSimilarMatches.Select(match => match.ReportId))
+                    .Distinct()
+                    .Count(),
                 report.CreatedAt,
                 report.ResolvedAt))
             .ToListAsync(cancellationToken);

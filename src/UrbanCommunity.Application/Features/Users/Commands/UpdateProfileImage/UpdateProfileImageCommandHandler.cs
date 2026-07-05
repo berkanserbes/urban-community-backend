@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Logging;
 using UrbanCommunity.Application.Common.Exceptions;
 using UrbanCommunity.Application.Common.Models;
 using UrbanCommunity.Application.Interfaces;
@@ -9,7 +10,8 @@ namespace UrbanCommunity.Application.Features.Users.Commands.UpdateProfileImage;
 
 public sealed class UpdateProfileImageCommandHandler(
     UserManager<User> userManager,
-    IFileService fileService)
+    IFileService fileService,
+    ILogger<UpdateProfileImageCommandHandler> logger)
     : IRequestHandler<UpdateProfileImageCommand, Result<UpdateProfileImageCommandResponse>>
 {
     public async Task<Result<UpdateProfileImageCommandResponse>> Handle(
@@ -23,12 +25,22 @@ public sealed class UpdateProfileImageCommandHandler(
             throw new NotFoundException(nameof(User), request.UserId);
         }
 
-        if (!string.IsNullOrWhiteSpace(user.ProfileImageUrl))
-        {
-            await fileService.DeleteFileAsync(user.ProfileImageUrl, cancellationToken);
-        }
+        var previousImageUrl = user.ProfileImageUrl;
 
-        var imageUrl = await fileService.UploadFileAsync(request.Image, "profile-images", cancellationToken);
+        string imageUrl;
+
+        try
+        {
+            imageUrl = await fileService.UploadFileAsync(request.Image, "profile-images", cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch
+        {
+            return Result<UpdateProfileImageCommandResponse>.Failure(["Fotoğraf yüklenemedi. Lütfen tekrar deneyin."]);
+        }
 
         if (string.IsNullOrWhiteSpace(imageUrl))
         {
@@ -37,9 +49,32 @@ public sealed class UpdateProfileImageCommandHandler(
 
         user.SetProfileImage(imageUrl);
 
-        await userManager.UpdateAsync(user);
+        var updateResult = await userManager.UpdateAsync(user);
+        if (!updateResult.Succeeded)
+        {
+            await DeleteFileBestEffortAsync(imageUrl, cancellationToken);
+            return Result<UpdateProfileImageCommandResponse>.Failure(
+                updateResult.Errors.Select(error => error.Description).ToArray());
+        }
+
+        if (!string.IsNullOrWhiteSpace(previousImageUrl))
+        {
+            await DeleteFileBestEffortAsync(previousImageUrl, cancellationToken);
+        }
 
         return Result<UpdateProfileImageCommandResponse>.Success(
             new UpdateProfileImageCommandResponse(user.Id, imageUrl));
+    }
+
+    private async Task DeleteFileBestEffortAsync(string fileUrl, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await fileService.DeleteFileAsync(fileUrl, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Profile image cleanup failed for {FileUrl}.", fileUrl);
+        }
     }
 }

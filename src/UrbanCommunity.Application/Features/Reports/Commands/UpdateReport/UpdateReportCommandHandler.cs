@@ -165,7 +165,21 @@ public sealed class UpdateReportCommandHandler(
             for (var i = 0; i < newMedia.Count; i++)
             {
                 var file = newMedia[i];
-                var url = await fileService.UploadFileAsync(file, "reports", cancellationToken);
+                string url;
+
+                try
+                {
+                    url = await fileService.UploadFileAsync(file, "reports", cancellationToken);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    throw;
+                }
+                catch
+                {
+                    await DeleteFilesBestEffortAsync(uploadedUrls, cancellationToken);
+                    return UpdateMediaResult.Failure("Medya dosyası yüklenemedi. Lütfen tekrar deneyin.");
+                }
 
                 if (string.IsNullOrWhiteSpace(url))
                 {
@@ -227,10 +241,19 @@ public sealed class UpdateReportCommandHandler(
             : MediaType.Image;
 
     private static Point? CreateLocation(double? latitude, double? longitude) =>
-        latitude.HasValue && longitude.HasValue
-            && double.IsFinite(latitude.Value) && double.IsFinite(longitude.Value)
-            ? new Point(longitude.Value, latitude.Value) { SRID = 4326 }
+        TryGetCoordinate(latitude, -90, 90, out var validLatitude) &&
+        TryGetCoordinate(longitude, -180, 180, out var validLongitude)
+            ? new Point(validLongitude, validLatitude) { SRID = 4326 }
             : null;
+
+    private static bool TryGetCoordinate(double? value, double min, double max, out double coordinate)
+    {
+        coordinate = value.GetValueOrDefault();
+        return value.HasValue &&
+            double.IsFinite(coordinate) &&
+            coordinate >= min &&
+            coordinate <= max;
+    }
 
     private sealed record UpdateMediaResult(
         bool IsSuccess,

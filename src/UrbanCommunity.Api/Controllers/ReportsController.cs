@@ -25,7 +25,7 @@ public class ReportsController(IMediator mediator) : ApiController
 {
     [HttpGet]
     public async Task<IActionResult> GetAll(
-        [FromQuery] Guid? neighborhoodId,
+        [FromQuery] string? scope,
         [FromQuery] ReportStatus? status,
         [FromQuery] Guid? categoryId,
         [FromQuery] Guid? assignedOrganizationDepartmentId,
@@ -33,10 +33,12 @@ public class ReportsController(IMediator mediator) : ApiController
     {
         var result = await mediator.Send(
             new GetReportsQuery(
-                neighborhoodId,
-                status,
-                categoryId,
-                assignedOrganizationDepartmentId),
+                RequestingUserId: GetCurrentUserId(),
+                IsOfficial: User.IsInRole("Official"),
+                Scope: scope,
+                Status: status,
+                CategoryId: categoryId,
+                AssignedOrganizationDepartmentId: assignedOrganizationDepartmentId),
             cancellationToken);
         return Ok(result);
     }
@@ -122,6 +124,9 @@ public class ReportsController(IMediator mediator) : ApiController
             request.Media);
 
         var result = await mediator.Send(command, cancellationToken);
+        if (!result.IsSuccess)
+            return BadRequest(result);
+
         return CreatedAtAction(nameof(GetById), new { id = result.Data?.Id }, result);
     }
 

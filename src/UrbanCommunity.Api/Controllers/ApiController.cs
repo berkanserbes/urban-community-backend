@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using UrbanCommunity.Application.Common.Exceptions;
 
 namespace UrbanCommunity.Api.Controllers;
 
@@ -15,10 +16,11 @@ public abstract class ApiController : ControllerBase
     /// </summary>
     protected Guid GetCurrentUserId()
     {
-        var claim = User.FindFirstValue(ClaimTypes.NameIdentifier)
-            ?? throw new UnauthorizedAccessException("Kullanıcı kimliği bulunamadı.");
+        var claim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!Guid.TryParse(claim, out var userId))
+            throw new UnauthorizedException("Kullanıcı kimliği bulunamadı.");
 
-        return Guid.Parse(claim);
+        return userId;
     }
 
     /// <summary>
