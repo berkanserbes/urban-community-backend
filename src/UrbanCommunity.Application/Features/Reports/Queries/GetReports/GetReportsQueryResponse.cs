@@ -26,4 +26,5 @@ public sealed record GetReportsQueryResponse(
     bool AssignmentNeedsReview,
     int SimilarReportCount,
     DateTime CreatedAt,
-    DateTime? ResolvedAt);
+    DateTime? ResolvedAt,
+    string? ThumbnailUrl);

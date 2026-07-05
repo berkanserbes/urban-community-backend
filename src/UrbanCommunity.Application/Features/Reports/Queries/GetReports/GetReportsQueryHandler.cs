@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using UrbanCommunity.Application.Common.Models;
 using UrbanCommunity.Application.Interfaces;
+using UrbanCommunity.Domain.Enums;
 
 namespace UrbanCommunity.Application.Features.Reports.Queries.GetReports;
 
@@ -111,7 +112,12 @@ public async Task<Result<IReadOnlyList<GetReportsQueryResponse>>> Handle(GetRepo
                     .Distinct()
                     .Count(),
                 r.CreatedAt,
-                r.ResolvedAt))
+                r.ResolvedAt,
+                r.Media
+                    .Where(m => m.MediaType == MediaType.Image)
+                    .OrderBy(m => m.DisplayOrder)
+                    .Select(m => m.ThumbnailUrl ?? m.Url)
+                    .FirstOrDefault()))
             .ToListAsync(cancellationToken);
 
         return Result<IReadOnlyList<GetReportsQueryResponse>>.Success(reports);

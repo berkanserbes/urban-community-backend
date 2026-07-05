@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using UrbanCommunity.Application.Common.Models;
 using UrbanCommunity.Application.Features.Reports.Queries.GetReports;
 using UrbanCommunity.Application.Interfaces;
+using UrbanCommunity.Domain.Enums;
 
 namespace UrbanCommunity.Application.Features.Reports.Queries.GetManageableReports;
 
@@ -81,7 +82,12 @@ public sealed class GetManageableReportsQueryHandler(
                     .Distinct()
                     .Count(),
                 report.CreatedAt,
-                report.ResolvedAt))
+                report.ResolvedAt,
+                report.Media
+                    .Where(m => m.MediaType == MediaType.Image)
+                    .OrderBy(m => m.DisplayOrder)
+                    .Select(m => m.ThumbnailUrl ?? m.Url)
+                    .FirstOrDefault()))
             .ToListAsync(cancellationToken);
 
         return Result<IReadOnlyList<GetReportsQueryResponse>>.Success(reports);
