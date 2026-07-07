@@ -1,11 +1,14 @@
+using System.Text.Json.Serialization;
+
 namespace UrbanCommunity.Application.Common.Models;
 
 public class Result
 {
-    internal Result(bool isSuccess, IEnumerable<string> errors)
+    [JsonConstructor]
+    public Result(bool isSuccess, string[]? errors)
     {
         IsSuccess = isSuccess;
-        Errors = errors.ToArray();
+        Errors = errors ?? [];
     }
 
     public bool IsSuccess { get; }
@@ -18,13 +21,14 @@ public class Result
 
     public static Result Failure(IEnumerable<string> errors)
     {
-        return new Result(false, errors);
+        return new Result(false, errors.ToArray());
     }
 }
 
 public class Result<T> : Result
 {
-    private Result(bool isSuccess, T? data, IEnumerable<string> errors) 
+    [JsonConstructor]
+    public Result(bool isSuccess, T? data, string[]? errors)
         : base(isSuccess, errors)
     {
         Data = data;
@@ -39,6 +43,6 @@ public class Result<T> : Result
 
     public static new Result<T> Failure(IEnumerable<string> errors)
     {
-        return new Result<T>(false, default, errors);
+        return new Result<T>(false, default, errors.ToArray());
     }
 }
