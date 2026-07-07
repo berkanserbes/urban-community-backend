@@ -32,7 +32,10 @@ try
 
     var envFile = builder.Environment.IsDevelopment() ? ".env.development" : ".env";
     if (File.Exists(envFile))
+    {
         DotNetEnv.Env.Load(envFile);
+        builder.Configuration.AddEnvironmentVariables();
+    }
 
     ValidateRequiredConfiguration(builder.Environment);
     var dbConnectionString = GetRequiredEnvironmentVariable("DB_CONNECTION_STRING");

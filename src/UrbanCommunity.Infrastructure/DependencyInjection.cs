@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using StackExchange.Redis;
 using UrbanCommunity.Application.Interfaces;
 using UrbanCommunity.Infrastructure.Services;
 using UrbanCommunity.Infrastructure.Services.Ai;
@@ -69,16 +70,36 @@ public static class DependencyInjection
         if (useRedisCache)
         {
             var redisConnectionString = configuration.GetConnectionString("Redis") ?? "localhost:6379";
-            services.AddSingleton<StackExchange.Redis.IConnectionMultiplexer>(sp =>
-                StackExchange.Redis.ConnectionMultiplexer.Connect(redisConnectionString));
-
-            services.AddStackExchangeRedisCache(options =>
+            IConnectionMultiplexer? connectionMultiplexer = null;
+            try
             {
-                options.Configuration = redisConnectionString;
-                options.InstanceName = "UrbanCommunity_";
-            });
+                connectionMultiplexer = ConnectionMultiplexer.Connect(redisConnectionString);
+                services.AddSingleton<IConnectionMultiplexer>(_ => connectionMultiplexer);
 
-            services.AddSingleton<ICacheService, RedisCacheService>();
+                services.AddStackExchangeRedisCache(options =>
+                {
+                    options.Configuration = redisConnectionString;
+                });
+
+                services.AddSingleton<ICacheService, RedisCacheService>();
+            }
+            catch (RedisConnectionException)
+            {
+                connectionMultiplexer?.Dispose();
+                services.AddMemoryCache();
+                services.AddSingleton<ICacheService, InMemoryCacheService>();
+            }
+            catch (RedisTimeoutException)
+            {
+                connectionMultiplexer?.Dispose();
+                services.AddMemoryCache();
+                services.AddSingleton<ICacheService, InMemoryCacheService>();
+            }
+            catch
+            {
+                connectionMultiplexer?.Dispose();
+                throw;
+            }
         }
         else
         {
