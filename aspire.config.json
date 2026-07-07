@@ -1,0 +1,5 @@
+{
+  "appHost": {
+    "path": "src/UrbanCommunity.AppHost/UrbanCommunity.AppHost.csproj"
+  }
+}
