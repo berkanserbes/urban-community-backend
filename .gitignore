@@ -432,3 +432,9 @@ FodyWeavers.xsd
 *.env.development
 *.env.production
 *.env.staging
+
+# Local database backups
+backups/
+
+# Aspire generated deployment artifacts
+src/UrbanCommunity.AppHost/aspire-output/
