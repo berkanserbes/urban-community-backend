@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Configuration;
 using UrbanCommunity.Application.Interfaces;
 
 namespace UrbanCommunity.Infrastructure.Services;
@@ -6,17 +7,19 @@ namespace UrbanCommunity.Infrastructure.Services;
 public class InMemoryCacheService : ICacheService
 {
     private readonly IMemoryCache _memoryCache;
+    private readonly string _keyPrefix;
     private readonly HashSet<string> _keys = [];
     private readonly Lock _lock = new();
 
-    public InMemoryCacheService(IMemoryCache memoryCache)
+    public InMemoryCacheService(IMemoryCache memoryCache, IConfiguration configuration)
     {
         _memoryCache = memoryCache;
+        _keyPrefix = NormalizePrefix(configuration["CacheSettings:KeyPrefix"]);
     }
 
     public Task<T?> GetAsync<T>(string key, CancellationToken cancellationToken = default)
     {
-        _memoryCache.TryGetValue(key, out T? value);
+        _memoryCache.TryGetValue(ApplyPrefix(key), out T? value);
         return Task.FromResult(value);
     }
 
@@ -30,15 +33,16 @@ public class InMemoryCacheService : ICacheService
         if (options?.AbsoluteExpireTime.HasValue == true)
             entryOptions.SetAbsoluteExpiration(options.AbsoluteExpireTime.Value);
 
-        _memoryCache.Set(key, value, entryOptions);
-        lock (_lock) { _keys.Add(key); }
+        var prefixedKey = ApplyPrefix(key);
+        _memoryCache.Set(prefixedKey, value, entryOptions);
+        lock (_lock) { _keys.Add(prefixedKey); }
 
         return Task.CompletedTask;
     }
 
     public Task<bool> ExistsAsync(string key, CancellationToken cancellationToken = default)
     {
-        return Task.FromResult(_memoryCache.TryGetValue(key, out _));
+        return Task.FromResult(_memoryCache.TryGetValue(ApplyPrefix(key), out _));
     }
 
     public async Task<T> GetOrSetAsync<T>(string key, Func<Task<T>> factory, CacheOptions? options = null, CancellationToken cancellationToken = default)
@@ -54,23 +58,21 @@ public class InMemoryCacheService : ICacheService
 
     public Task RemoveAsync(string key, CancellationToken cancellationToken = default)
     {
-        _memoryCache.Remove(key);
-        lock (_lock) { _keys.Remove(key); }
+        var prefixedKey = ApplyPrefix(key);
+        _memoryCache.Remove(prefixedKey);
+        lock (_lock) { _keys.Remove(prefixedKey); }
         return Task.CompletedTask;
     }
 
     public Task RemoveByPrefixAsync(string prefixKey, CancellationToken cancellationToken = default)
     {
-        List<string> keysToRemove;
+        var prefixedPrefix = ApplyPrefix(prefixKey);
         lock (_lock)
         {
-            keysToRemove = _keys
-                .Where(k => k.StartsWith(prefixKey, StringComparison.OrdinalIgnoreCase))
+            var keysToRemove = _keys
+                .Where(k => k.StartsWith(prefixedPrefix, StringComparison.OrdinalIgnoreCase))
                 .ToList();
-        }
 
-        lock (_lock)
-        {
             foreach (var key in keysToRemove)
             {
                 _memoryCache.Remove(key);
@@ -79,5 +81,15 @@ public class InMemoryCacheService : ICacheService
         }
 
         return Task.CompletedTask;
+    }
+
+    private string ApplyPrefix(string key)
+    {
+        return string.IsNullOrWhiteSpace(_keyPrefix) ? key : $"{_keyPrefix}:{key}";
+    }
+
+    private static string NormalizePrefix(string? prefix)
+    {
+        return string.IsNullOrWhiteSpace(prefix) ? string.Empty : prefix.Trim().TrimEnd(':');
     }
 }
