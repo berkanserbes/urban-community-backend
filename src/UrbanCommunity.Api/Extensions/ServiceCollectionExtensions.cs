@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.OpenApi;
 using Scalar.AspNetCore;
 using UrbanCommunity.Api.Constants;
+using UrbanCommunity.Api.HealthChecks;
 using UrbanCommunity.Api.Services;
 using UrbanCommunity.Application.Interfaces;
 
@@ -23,7 +24,8 @@ public static class ServiceCollectionExtensions
             .AddApiDocumentation()
             .AddCompression()
             .AddUploadLimits()
-            .AddRealtimeServices();
+            .AddRealtimeServices()
+            .AddReadinessHealthChecks();
 
         return services;
     }
@@ -183,6 +185,17 @@ public static class ServiceCollectionExtensions
     {
         services.AddSignalR();
         services.AddScoped<IRealtimeNotificationService, SignalRNotificationService>();
+
+        return services;
+    }
+
+    private static IServiceCollection AddReadinessHealthChecks(this IServiceCollection services)
+    {
+        services.AddHealthChecks()
+            .AddCheck<DatabaseHealthCheck>("postgresql", tags: ["ready"])
+            .AddCheck<RedisHealthCheck>("redis", tags: ["ready"])
+            .AddCheck<RabbitMqHealthCheck>("rabbitmq", tags: ["ready"])
+            .AddCheck<AiServiceHealthCheck>("ai-service", tags: ["ready"]);
 
         return services;
     }
