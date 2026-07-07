@@ -49,6 +49,15 @@ services:
       - urban-network
     restart: always
 
+  urban-community-redis:
+    image: redis:7-alpine
+    container_name: urban-community-redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    networks:
+      - urban-network
+    restart: always
+
   urban-community-api:
     build:
       context: ../..
@@ -58,6 +67,8 @@ services:
       urban-community-db:
         condition: service_healthy
       urban-community-mq:
+        condition: service_started
+      urban-community-redis:
         condition: service_started
     environment:
       - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
@@ -71,6 +82,9 @@ services:
       - RABBIT_MQ_HOST=urban-community-mq
       - RABBIT_MQ_USER=${RABBIT_MQ_USER}
       - RABBIT_MQ_PASS=${RABBIT_MQ_PASS}
+      - ConnectionStrings__Redis=${REDIS_CONNECTION_STRING}
+      - CacheSettings__UseRedis=${CACHE_USE_REDIS}
+      - CacheSettings__KeyPrefix=${CACHE_KEY_PREFIX}
       - FILE_STORAGE_PROVIDER=${FILE_STORAGE_PROVIDER}
       - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
       - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
