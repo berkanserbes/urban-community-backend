@@ -1,7 +1,11 @@
 using System.IO.Compression;
+using System.Globalization;
+using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.OpenApi;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.OpenApi;
 using Scalar.AspNetCore;
@@ -15,6 +19,14 @@ public static class ServiceCollectionExtensions
 {
     private const string OpenApiDocumentName = "v1";
     private const string BearerSecuritySchemeName = "Bearer";
+    private const string TooManyRequestsMessage =
+        "Çok fazla istek gönderildi. Lütfen bir süre bekleyip tekrar deneyin.";
+
+    private static readonly JsonSerializerOptions RateLimitJsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+    };
 
     public static IServiceCollection AddApiServices(this IServiceCollection services)
     {
@@ -23,6 +35,7 @@ public static class ServiceCollectionExtensions
             .AddApiDocumentation()
             .AddCompression()
             .AddUploadLimits()
+            .AddAuthRateLimiting()
             .AddRealtimeServices();
 
         return services;
@@ -177,6 +190,80 @@ public static class ServiceCollectionExtensions
         });
 
         return services;
+    }
+
+    private static IServiceCollection AddAuthRateLimiting(this IServiceCollection services)
+    {
+        services.AddRateLimiter(options =>
+        {
+            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            options.OnRejected = async (context, cancellationToken) =>
+            {
+                var httpContext = context.HttpContext;
+
+                if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+                {
+                    httpContext.Response.Headers.RetryAfter = Math.Ceiling(retryAfter.TotalSeconds)
+                        .ToString(CultureInfo.InvariantCulture);
+                }
+
+                httpContext.Response.ContentType = "application/json";
+
+                var response = new
+                {
+                    IsSuccess = false,
+                    Errors = new[] { TooManyRequestsMessage },
+                    TraceId = httpContext.TraceIdentifier
+                };
+
+                await httpContext.Response.WriteAsync(
+                    JsonSerializer.Serialize(response, RateLimitJsonOptions),
+                    cancellationToken);
+            };
+
+            options.AddPolicy(ApiConstants.AuthLoginRateLimitPolicy, httpContext =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    GetClientPartitionKey(httpContext, "auth-login"),
+                    _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 5,
+                        Window = TimeSpan.FromMinutes(1),
+                        QueueLimit = 0,
+                        AutoReplenishment = true
+                    }));
+
+            options.AddPolicy(ApiConstants.AuthRegisterRateLimitPolicy, httpContext =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    GetClientPartitionKey(httpContext, "auth-register"),
+                    _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 3,
+                        Window = TimeSpan.FromMinutes(10),
+                        QueueLimit = 0,
+                        AutoReplenishment = true
+                    }));
+
+            options.AddPolicy(ApiConstants.AuthRefreshTokenRateLimitPolicy, httpContext =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    GetClientPartitionKey(httpContext, "auth-refresh"),
+                    _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 10,
+                        Window = TimeSpan.FromMinutes(5),
+                        QueueLimit = 0,
+                        AutoReplenishment = true
+                    }));
+        });
+
+        return services;
+    }
+
+    private static string GetClientPartitionKey(HttpContext context, string endpointKey)
+    {
+        var clientIp = context.Connection.RemoteIpAddress?.ToString();
+        return string.IsNullOrWhiteSpace(clientIp)
+            ? $"{endpointKey}:unknown"
+            : $"{endpointKey}:{clientIp}";
     }
 
     private static IServiceCollection AddRealtimeServices(this IServiceCollection services)

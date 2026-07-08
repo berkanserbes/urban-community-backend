@@ -5,6 +5,10 @@ namespace UrbanCommunity.Api.Constants;
 /// </summary>
 public static class ApiConstants
 {
+    public const string AuthLoginRateLimitPolicy = "AuthLoginPolicy";
+    public const string AuthRegisterRateLimitPolicy = "AuthRegisterPolicy";
+    public const string AuthRefreshTokenRateLimitPolicy = "AuthRefreshTokenPolicy";
+
     /// <summary>
     /// Maximum upload size limit: 10 GB.
     /// </summary>
