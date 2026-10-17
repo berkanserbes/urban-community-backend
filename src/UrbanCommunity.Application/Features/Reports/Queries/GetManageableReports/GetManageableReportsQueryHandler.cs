@@ -41,6 +41,23 @@ public sealed class GetManageableReportsQueryHandler(
                 report.AssignedOrganizationDepartmentId ==
                 request.AssignedOrganizationDepartmentId.Value);
 
+        if (request.Priority.HasValue)
+            query = query.Where(report => report.Priority == request.Priority.Value);
+
+        if (request.Assignment == ReportAssignmentFilter.Unassigned)
+            query = query.Where(report => report.AssignedOrganizationDepartmentId == null);
+        else if (request.Assignment == ReportAssignmentFilter.NeedsReview)
+            query = query.Where(report => report.AssignmentNeedsReview);
+
+        if (!string.IsNullOrWhiteSpace(request.Search))
+        {
+            var search = request.Search.Trim().ToLower();
+            query = query.Where(report =>
+                report.Title.ToLower().Contains(search) ||
+                report.Category.Name.ToLower().Contains(search) ||
+                report.Neighborhood.Name.ToLower().Contains(search));
+        }
+
         var reports = await query
             .OrderByDescending(report => report.CreatedAt)
             .ThenBy(report => report.Id)

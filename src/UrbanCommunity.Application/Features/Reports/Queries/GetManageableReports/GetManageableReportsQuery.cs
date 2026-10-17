@@ -11,5 +11,8 @@ public sealed record GetManageableReportsQuery(
     Guid? NeighborhoodId = null,
     ReportStatus? Status = null,
     Guid? CategoryId = null,
-    Guid? AssignedOrganizationDepartmentId = null)
+    Guid? AssignedOrganizationDepartmentId = null,
+    string? Search = null,
+    ReportPriority? Priority = null,
+    ReportAssignmentFilter? Assignment = null)
     : PaginationRequest, IRequest<Result<PagedResult<GetReportsQueryResponse>>>;

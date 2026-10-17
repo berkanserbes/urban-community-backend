@@ -77,6 +77,9 @@ public class ReportsController(IMediator mediator) : ApiController
         [FromQuery] ReportStatus? status,
         [FromQuery] Guid? categoryId,
         [FromQuery] Guid? assignedOrganizationDepartmentId,
+        [FromQuery] string? search,
+        [FromQuery] ReportPriority? priority,
+        [FromQuery] ReportAssignmentFilter? assignment,
         CancellationToken cancellationToken)
     {
         var result = await mediator.Send(
@@ -86,7 +89,10 @@ public class ReportsController(IMediator mediator) : ApiController
                 neighborhoodId,
                 status,
                 categoryId,
-                assignedOrganizationDepartmentId)
+                assignedOrganizationDepartmentId,
+                search,
+                priority,
+                assignment)
             {
                 PageIndex = pagination.PageIndex,
                 PageSize = pagination.PageSize

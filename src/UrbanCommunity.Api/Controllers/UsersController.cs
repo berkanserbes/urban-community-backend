@@ -126,10 +126,13 @@ public class UsersController(IMediator mediator) : ApiController
     [ProducesResponseType(typeof(Result<PagedResult<GetUsersQueryResponse>>), 200)]
     public async Task<IActionResult> GetAll(
         [FromQuery] PaginationRequest pagination,
+        [FromQuery] string? search,
+        [FromQuery] UserRole? role,
+        [FromQuery] bool? isActive,
         CancellationToken cancellationToken)
     {
         var result = await mediator.Send(
-            new GetUsersQuery()
+            new GetUsersQuery(search, role, isActive)
             {
                 PageIndex = pagination.PageIndex,
                 PageSize = pagination.PageSize

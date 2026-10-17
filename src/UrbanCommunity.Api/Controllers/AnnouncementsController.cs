@@ -56,10 +56,18 @@ public class AnnouncementsController(IMediator mediator) : ApiController
     [ProducesResponseType(typeof(Result<PagedResult<GetAnnouncementsQueryResponse>>), 200)]
     public async Task<IActionResult> GetManageable(
         [FromQuery] PaginationRequest pagination,
+        [FromQuery] string? search,
+        [FromQuery] AnnouncementScope? scope,
+        [FromQuery] bool? isActive,
         CancellationToken cancellationToken)
     {
         var result = await mediator.Send(
-            new GetManageableAnnouncementsQuery(GetCurrentUserId(), User.IsInRole("Admin"))
+            new GetManageableAnnouncementsQuery(
+                GetCurrentUserId(),
+                User.IsInRole("Admin"),
+                search,
+                scope,
+                isActive)
             {
                 PageIndex = pagination.PageIndex,
                 PageSize = pagination.PageSize

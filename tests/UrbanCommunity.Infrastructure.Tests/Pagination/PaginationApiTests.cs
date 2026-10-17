@@ -118,6 +118,34 @@ public sealed class PaginationApiTests
     }
 
     [Fact]
+    public async Task ServerSideFiltersCoverAllRecords()
+    {
+        using var host = await CreateHost();
+        var server = host.GetTestServer();
+        await SeedAsync(server);
+        using var client = server.CreateClient();
+
+        foreach (var (route, count) in new (string Route, int Count)[]
+        {
+            ("/api/reports/manageable?search=ROAD", 4),
+            ("/api/reports/manageable?search=outside", 1),
+            ("/api/reports/manageable?priority=Urgent", 0),
+            ("/api/reports/manageable?assignment=Unassigned", 4),
+            ("/api/reports/manageable?assignment=NeedsReview", 0),
+            ("/api/users?search=peer", 1),
+            ("/api/users?role=Citizen", 2),
+            ("/api/users?isActive=false", 0),
+            ("/api/announcements/manageable?search=other", 1),
+            ("/api/announcements/manageable?scope=All", 5),
+            ("/api/announcements/manageable?isActive=false", 0)
+        })
+        {
+            using var json = JsonDocument.Parse(await client.GetStringAsync(route));
+            Assert.True(count == json.RootElement.GetProperty("data").GetProperty("totalCount").GetInt32(), route);
+        }
+    }
+
+    [Fact]
     public async Task TiedSortKeysYieldDistinctStablePagesAndProjectionKeepsNames()
     {
         using var host = await CreateHost();

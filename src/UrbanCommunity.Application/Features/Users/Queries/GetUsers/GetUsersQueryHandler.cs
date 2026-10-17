@@ -11,8 +11,24 @@ public sealed class GetUsersQueryHandler(IApplicationDbContext context)
 {
     public async Task<Result<PagedResult<GetUsersQueryResponse>>> Handle(GetUsersQuery request, CancellationToken cancellationToken)
     {
-        var users = await context.Users
-            .AsNoTracking()
+        var query = context.Users.AsNoTracking();
+
+        if (request.Role.HasValue)
+            query = query.Where(u => u.Role == request.Role.Value);
+
+        if (request.IsActive.HasValue)
+            query = query.Where(u => u.IsActive == request.IsActive.Value);
+
+        if (!string.IsNullOrWhiteSpace(request.Search))
+        {
+            var search = request.Search.Trim().ToLower();
+            query = query.Where(u =>
+                u.FirstName.ToLower().Contains(search) ||
+                u.LastName.ToLower().Contains(search) ||
+                (u.Email != null && u.Email.ToLower().Contains(search)));
+        }
+
+        var users = await query
             .OrderBy(u => u.FirstName)
             .ThenBy(u => u.LastName)
             .ThenBy(u => u.Id)

@@ -24,6 +24,20 @@ public sealed class GetManageableAnnouncementsQueryHandler(IApplicationDbContext
             query = query.Where(a => a.UserId == request.RequestingUserId);
         }
 
+        if (request.Scope.HasValue)
+            query = query.Where(a => a.Scope == request.Scope.Value);
+
+        if (request.IsActive.HasValue)
+            query = query.Where(a => a.IsActive == request.IsActive.Value);
+
+        if (!string.IsNullOrWhiteSpace(request.Search))
+        {
+            var search = request.Search.Trim().ToLower();
+            query = query.Where(a =>
+                a.Title.ToLower().Contains(search) ||
+                a.Content.ToLower().Contains(search));
+        }
+
         var announcements = await query
             .OrderByDescending(a => a.CreatedAt)
             .ThenBy(a => a.Id)
