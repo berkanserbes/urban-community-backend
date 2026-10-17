@@ -16,6 +16,7 @@ using UrbanCommunity.Application.Features.Users.Commands.RequiredPasswordChange;
 using UrbanCommunity.Application.Features.Users.Queries.GetCurrentUser;
 using UrbanCommunity.Application.Features.Users.Queries.GetUserById;
 using UrbanCommunity.Application.Features.Users.Queries.GetUsers;
+using UrbanCommunity.Application.Features.Users.Queries.GetUserStats;
 using UrbanCommunity.Application.Features.Users.Queries.GetUsersByProvince;
 using UrbanCommunity.Application.Features.Users.Queries.GetUsersByDistrict;
 using UrbanCommunity.Application.Features.Users.Queries.GetUsersByNeighborhood;
@@ -138,6 +139,16 @@ public class UsersController(IMediator mediator) : ApiController
                 PageSize = pagination.PageSize
             },
             cancellationToken);
+        return Ok(result);
+    }
+
+    /// <summary>Returns user counts by role and active state. Restricted to Admin.</summary>
+    [HttpGet("stats")]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(typeof(Result<GetUserStatsQueryResponse>), 200)]
+    public async Task<IActionResult> GetStats(CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new GetUserStatsQuery(), cancellationToken);
         return Ok(result);
     }
 

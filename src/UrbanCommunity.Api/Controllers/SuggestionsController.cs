@@ -10,6 +10,7 @@ using UrbanCommunity.Application.Features.Suggestions.Commands.UpdateSuggestion;
 using UrbanCommunity.Application.Features.Suggestions.Queries.GetSuggestionById;
 using UrbanCommunity.Application.Features.Suggestions.Queries.GetAllowedSuggestionStatusTransitions;
 using UrbanCommunity.Application.Features.Suggestions.Queries.GetSuggestions;
+using UrbanCommunity.Application.Features.Suggestions.Queries.GetSuggestionStats;
 using UrbanCommunity.Domain.Enums;
 
 namespace UrbanCommunity.Api.Controllers;
@@ -37,6 +38,15 @@ public class SuggestionsController(IMediator mediator) : ApiController
                 PageSize = pagination.PageSize
             },
             cancellationToken);
+        return Ok(result);
+    }
+
+    /// <summary>Returns suggestion counts grouped by status.</summary>
+    [HttpGet("stats")]
+    [ProducesResponseType(typeof(Result<GetSuggestionStatsQueryResponse>), 200)]
+    public async Task<IActionResult> GetStats(CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new GetSuggestionStatsQuery(), cancellationToken);
         return Ok(result);
     }
 

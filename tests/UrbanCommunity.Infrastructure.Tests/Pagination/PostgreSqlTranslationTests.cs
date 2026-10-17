@@ -4,8 +4,12 @@ using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using UrbanCommunity.Application.Features.Announcements.Queries.GetManageableAnnouncements;
+using UrbanCommunity.Application.Features.Announcements.Queries.GetManageableAnnouncementStats;
 using UrbanCommunity.Application.Features.Reports.Queries.GetManageableReports;
+using UrbanCommunity.Application.Features.Reports.Queries.GetManageableReportStats;
+using UrbanCommunity.Application.Features.Suggestions.Queries.GetSuggestionStats;
 using UrbanCommunity.Application.Features.Users.Queries.GetUsers;
+using UrbanCommunity.Application.Features.Users.Queries.GetUserStats;
 using UrbanCommunity.Application.Interfaces;
 using UrbanCommunity.Domain.Enums;
 using UrbanCommunity.Infrastructure.Persistence;
@@ -23,6 +27,23 @@ public sealed class PostgreSqlTranslationTests
 {
     private static readonly ReportManagementAccess OfficialAccess = new(
         false, Guid.NewGuid(), Guid.NewGuid(), OfficialJurisdictionLevel.District, Guid.NewGuid());
+
+    [Fact]
+    public async Task StatsQueriesTranslateToSingleAggregateCommand()
+    {
+        var commands = new CommandRecorder();
+        await using var context = CreateContext(commands);
+
+        await new GetManageableReportStatsQueryHandler(context, new FixedAccessService(OfficialAccess))
+            .Handle(new GetManageableReportStatsQuery(OfficialAccess.RequestingUserId, false), CancellationToken.None);
+        await new GetUserStatsQueryHandler(context).Handle(new GetUserStatsQuery(), CancellationToken.None);
+        await new GetSuggestionStatsQueryHandler(context).Handle(new GetSuggestionStatsQuery(), CancellationToken.None);
+        await new GetManageableAnnouncementStatsQueryHandler(context)
+            .Handle(new GetManageableAnnouncementStatsQuery(Guid.NewGuid(), false), CancellationToken.None);
+
+        Assert.Equal(4, commands.Commands.Count);
+        Assert.All(commands.Commands, sql => Assert.Contains("count(", sql, StringComparison.OrdinalIgnoreCase));
+    }
 
     [Fact]
     public async Task ListFiltersTranslateToSql()

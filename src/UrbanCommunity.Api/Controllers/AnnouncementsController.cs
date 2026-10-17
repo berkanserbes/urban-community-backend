@@ -13,6 +13,7 @@ using UrbanCommunity.Application.Features.Announcements.Commands.UpdateAnnouncem
 using UrbanCommunity.Application.Features.Announcements.Queries.GetAnnouncementById;
 using UrbanCommunity.Application.Features.Announcements.Queries.GetAnnouncements;
 using UrbanCommunity.Application.Features.Announcements.Queries.GetManageableAnnouncements;
+using UrbanCommunity.Application.Features.Announcements.Queries.GetManageableAnnouncementStats;
 using UrbanCommunity.Domain.Enums;
 
 namespace UrbanCommunity.Api.Controllers;
@@ -72,6 +73,18 @@ public class AnnouncementsController(IMediator mediator) : ApiController
                 PageIndex = pagination.PageIndex,
                 PageSize = pagination.PageSize
             },
+            cancellationToken);
+        return Ok(result);
+    }
+
+    /// <summary>Returns counts for the announcements the caller can manage.</summary>
+    [HttpGet("manageable/stats")]
+    [Authorize(Roles = "Admin,Official")]
+    [ProducesResponseType(typeof(Result<GetManageableAnnouncementStatsQueryResponse>), 200)]
+    public async Task<IActionResult> GetManageableStats(CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(
+            new GetManageableAnnouncementStatsQuery(GetCurrentUserId(), User.IsInRole("Admin")),
             cancellationToken);
         return Ok(result);
     }

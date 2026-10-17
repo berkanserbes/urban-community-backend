@@ -12,6 +12,7 @@ using UrbanCommunity.Application.Features.Reports.Commands.DeleteReport;
 using UrbanCommunity.Application.Features.Reports.Commands.UpdateReport;
 using UrbanCommunity.Application.Features.Reports.Queries.GetAllowedReportStatusTransitions;
 using UrbanCommunity.Application.Features.Reports.Queries.GetManageableReports;
+using UrbanCommunity.Application.Features.Reports.Queries.GetManageableReportStats;
 using UrbanCommunity.Application.Features.Reports.Queries.GetReportAssignmentOptions;
 using UrbanCommunity.Application.Features.Reports.Queries.GetReportById;
 using UrbanCommunity.Application.Features.Reports.Queries.GetReports;
@@ -99,6 +100,18 @@ public class ReportsController(IMediator mediator) : ApiController
             },
             cancellationToken);
 
+        return Ok(result);
+    }
+
+    /// <summary>Returns report counts within the caller's manageable scope.</summary>
+    [HttpGet("manageable/stats")]
+    [Authorize(Roles = "Admin,Official")]
+    [ProducesResponseType(typeof(Result<GetManageableReportStatsQueryResponse>), 200)]
+    public async Task<IActionResult> GetManageableStats(CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(
+            new GetManageableReportStatsQuery(GetCurrentUserId(), User.IsInRole("Admin")),
+            cancellationToken);
         return Ok(result);
     }
 

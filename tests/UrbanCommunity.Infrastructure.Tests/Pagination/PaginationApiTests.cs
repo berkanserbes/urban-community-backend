@@ -118,7 +118,7 @@ public sealed class PaginationApiTests
     }
 
     [Fact]
-    public async Task ServerSideFiltersCoverAllRecords()
+    public async Task ServerSideFiltersAndStatsCoverAllRecords()
     {
         using var host = await CreateHost();
         var server = host.GetTestServer();
@@ -142,6 +142,24 @@ public sealed class PaginationApiTests
         {
             using var json = JsonDocument.Parse(await client.GetStringAsync(route));
             Assert.True(count == json.RootElement.GetProperty("data").GetProperty("totalCount").GetInt32(), route);
+        }
+
+        // Stats count every record in scope, not just the first page.
+        AssertStats(await client.GetStringAsync("/api/reports/manageable/stats?pageSize=1"),
+            ("total", 4), ("aiReview", 4), ("urgent", 0), ("unassigned", 4), ("needsReview", 0));
+        AssertStats(await client.GetStringAsync("/api/users/stats"),
+            ("total", 3), ("active", 3), ("inactive", 0), ("admin", 1), ("official", 0), ("citizen", 2));
+        AssertStats(await client.GetStringAsync("/api/announcements/manageable/stats"),
+            ("total", 5), ("active", 5), ("allScope", 5), ("expiringSoon", 1));
+        AssertStats(await client.GetStringAsync("/api/suggestions/stats"),
+            ("total", 4), ("active", 3), ("reviewing", 0), ("implementation", 0), ("closed", 1));
+
+        static void AssertStats(string body, params (string Field, int Value)[] expected)
+        {
+            using var json = JsonDocument.Parse(body);
+            var data = json.RootElement.GetProperty("data");
+            foreach (var (field, value) in expected)
+                Assert.True(value == data.GetProperty(field).GetInt32(), $"{field}: {data}");
         }
     }
 
