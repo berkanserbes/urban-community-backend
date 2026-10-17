@@ -622,9 +622,15 @@ Indexler:
 - `Priority`
 - `NeighborhoodId + Status`
 - `ContentHash`
-- `AssignedOrganizationDepartmentId`
 - `AssignmentNeedsReview`
+- `NeighborhoodId + CreatedAt` (mahalle/konum listeleri)
+- `UserId + CreatedAt` (`/api/reports/mine`)
+- `AssignedOrganizationDepartmentId + CreatedAt` (Official yonetim listesi)
 - Spatial index: `Location`
+
+Sayfali rapor listeleri `CreatedAt` azalan sirayla gelir. `+ CreatedAt` indexleri bu siralamayi
+filtrelenmis kayitlar icin index uzerinden saglar; ayni kolonla baslayan tekil FK indexlerinin
+yerini alir.
 
 ### ReportMedias
 
@@ -711,6 +717,9 @@ Rapor yorumlarini tutar.
 | `UserId` | `Guid` | Evet | FK -> `AspNetUsers.Id` |
 | `Content` | `string(1000)` | Evet | Yorum metni |
 
+Indexler:
+- `ReportId + CreatedAt` (yorum listesi bu sirayla sayfalanir)
+
 ## Oneri Modulu
 
 ### Suggestions
@@ -733,6 +742,7 @@ Iliskiler:
 
 Indexler:
 - `Status`
+- `VoteScore + CreatedAt` (oneri listesi once oy puanina, sonra tarihe gore sayfalanir)
 
 ### Votes
 
@@ -761,6 +771,9 @@ Oneri yorumlarini tutar.
 | `SuggestionId` | `Guid` | Evet | FK -> `Suggestions.Id` |
 | `UserId` | `Guid` | Evet | FK -> `AspNetUsers.Id` |
 | `Content` | `string(1000)` | Evet | Yorum metni |
+
+Indexler:
+- `SuggestionId + CreatedAt` (yorum listesi bu sirayla sayfalanir)
 
 ## Topluluk Gonderileri
 
@@ -838,6 +851,9 @@ Topluluk gonderisi yorumlarini tutar.
 | `UserId` | `Guid` | Evet | FK -> `AspNetUsers.Id` |
 | `Content` | `string(1000)` | Evet | Yorum metni |
 
+Indexler:
+- `CommunityPostId + CreatedAt` (yorum listesi bu sirayla sayfalanir)
+
 ## Duyuru Modulu
 
 ### Announcements
@@ -903,6 +919,7 @@ Check constraint:
 
 Indexler:
 - `UserId + IsRead`
+- `UserId + CreatedAt` (bildirim listesi bu sirayla sayfalanir)
 
 ## Audit
 
