@@ -60,6 +60,33 @@ Tüm rotalar aşağıda `GET` olarak listelenmiştir. Mevcut filtreler geçerlid
 | Yorumlar | `/api/reports/{reportId}/comments`, `/api/suggestions/{suggestionId}/comments`, `/api/community-posts/{communityPostId}/comments` |
 | Oy verenler | `/api/suggestions/{suggestionId}/votes/voters` |
 
+### Sunucu tarafı filtreler
+
+Sayfalı listede filtreleme istemcide yapılamaz; istemci yalnızca mevcut sayfayı görür.
+Bu nedenle yönetim ekranlarının kullandığı filtreler backend'e eklenmiştir. `search`
+büyük/küçük harf duyarsız "içerir" araması yapar.
+
+| Rota | Filtreler |
+| --- | --- |
+| `/api/reports/manageable` | `search` (başlık, kategori, mahalle), `status`, `priority`, `assignment=Unassigned\|NeedsReview`, `categoryId`, `neighborhoodId`, `assignedOrganizationDepartmentId` |
+| `/api/users` | `search` (ad, soyad, e-posta), `role`, `isActive` |
+| `/api/announcements/manageable` | `search` (başlık, içerik), `scope`, `isActive` |
+
+### İstatistik endpointleri
+
+Sayaç kartları ve dashboard'lar liste uzunluğundan hesaplanmamalıdır. Aşağıdaki endpointler
+tüm kayıtları tek bir SQL sorgusunda sayar ve listeyle aynı yetki kapsamını uygular:
+
+| Rota | Yetki | Alanlar |
+| --- | --- | --- |
+| `GET /api/reports/manageable/stats` | Admin, Official | `total`, durum başına sayılar, `urgent`, `unassigned`, `needsReview` |
+| `GET /api/suggestions/stats` | Giriş yapmış kullanıcı | `total`, `active`, `reviewing`, `implementation`, `closed` |
+| `GET /api/users/stats` | Admin | `total`, `active`, `inactive`, `admin`, `official`, `citizen` |
+| `GET /api/announcements/manageable/stats` | Admin, Official | `total`, `active`, `allScope`, `expiringSoon` (5 gün içinde biten veya bitmiş) |
+
+İstatistikler filtre almaz; seçili filtreye uyan kayıt sayısı listenin `totalCount` alanındadır.
+"Son N kayıt" için ayrı endpoint gerekmez: `?pageSize=N` yeterlidir.
+
 İl/ilçe/mahalle referans listeleri, kategori/departman listeleri ve istatistikleri, kurum/birim listeleri,
 atama seçenekleri, izin verilen durum geçişleri ve detay içindeki koleksiyonlar bu geçişe dahil değildir.
 Mevcut referans cache anahtarları korunur; bu geçişte sayfalı listelere cache eklenmez.
