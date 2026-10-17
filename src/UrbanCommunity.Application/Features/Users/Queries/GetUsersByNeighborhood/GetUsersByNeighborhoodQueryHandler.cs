@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using UrbanCommunity.Application.Common.Exceptions;
+using UrbanCommunity.Application.Common.Extensions;
 using UrbanCommunity.Application.Common.Models;
 using UrbanCommunity.Application.Interfaces;
 using UrbanCommunity.Domain.Entities;
@@ -8,9 +9,9 @@ using UrbanCommunity.Domain.Entities;
 namespace UrbanCommunity.Application.Features.Users.Queries.GetUsersByNeighborhood;
 
 public sealed class GetUsersByNeighborhoodQueryHandler(IApplicationDbContext context)
-    : IRequestHandler<GetUsersByNeighborhoodQuery, Result<IReadOnlyList<GetUsersByNeighborhoodQueryResponse>>>
+    : IRequestHandler<GetUsersByNeighborhoodQuery, Result<PagedResult<GetUsersByNeighborhoodQueryResponse>>>
 {
-    public async Task<Result<IReadOnlyList<GetUsersByNeighborhoodQueryResponse>>> Handle(
+    public async Task<Result<PagedResult<GetUsersByNeighborhoodQueryResponse>>> Handle(
         GetUsersByNeighborhoodQuery request,
         CancellationToken cancellationToken)
     {
@@ -26,6 +27,7 @@ public sealed class GetUsersByNeighborhoodQueryHandler(IApplicationDbContext con
             .Where(u => u.NeighborhoodId == request.NeighborhoodId && u.IsActive)
             .OrderBy(u => u.FirstName)
             .ThenBy(u => u.LastName)
+            .ThenBy(u => u.Id)
             .Select(u => new GetUsersByNeighborhoodQueryResponse(
                 u.Id,
                 u.FirstName,
@@ -59,8 +61,8 @@ public sealed class GetUsersByNeighborhoodQueryHandler(IApplicationDbContext con
                         : u.OfficialJurisdictionLevel == Domain.Enums.OfficialJurisdictionLevel.Neighborhood
                             ? u.OfficialNeighborhood != null ? u.OfficialNeighborhood.Name : null
                             : null))
-            .ToListAsync(cancellationToken);
+            .ToPagedResultAsync(request.PageIndex, request.PageSize, cancellationToken);
 
-        return Result<IReadOnlyList<GetUsersByNeighborhoodQueryResponse>>.Success(users);
+        return Result<PagedResult<GetUsersByNeighborhoodQueryResponse>>.Success(users);
     }
 }

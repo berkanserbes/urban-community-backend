@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using UrbanCommunity.Application.Common.Models;
 using UrbanCommunity.Application.Features.Provinces.Queries.GetDistrictsByProvince;
 using UrbanCommunity.Application.Features.Provinces.Queries.GetProvinceById;
 using UrbanCommunity.Application.Features.Provinces.Queries.GetProvinces;
@@ -50,9 +51,19 @@ public class ProvincesController(IMediator mediator) : ControllerBase
     /// </summary>
     [HttpGet("{provinceId:guid}/users")]
     [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> GetUsersByProvince(Guid provinceId, CancellationToken cancellationToken)
+    [ProducesResponseType(typeof(Result<PagedResult<GetUsersByProvinceQueryResponse>>), 200)]
+    public async Task<IActionResult> GetUsersByProvince(
+        [FromQuery] PaginationRequest pagination,
+        Guid provinceId,
+        CancellationToken cancellationToken)
     {
-        var result = await mediator.Send(new GetUsersByProvinceQuery(provinceId), cancellationToken);
+        var result = await mediator.Send(
+            new GetUsersByProvinceQuery(provinceId)
+            {
+                PageIndex = pagination.PageIndex,
+                PageSize = pagination.PageSize
+            },
+            cancellationToken);
         return Ok(result);
     }
 }

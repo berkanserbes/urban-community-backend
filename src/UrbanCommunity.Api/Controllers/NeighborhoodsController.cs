@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using UrbanCommunity.Application.Common.Models;
 using UrbanCommunity.Application.Features.Neighborhoods.Queries.GetNeighborhoodById;
 using UrbanCommunity.Application.Features.Neighborhoods.Queries.GetNeighborhoods;
 using UrbanCommunity.Application.Features.Neighborhoods.Queries.GetNeighborhoodLocation;
@@ -62,9 +63,19 @@ public class NeighborhoodsController(IMediator mediator) : ControllerBase
     /// </summary>
     [HttpGet("{neighborhoodId:guid}/users")]
     [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> GetUsersByNeighborhood(Guid neighborhoodId, CancellationToken cancellationToken)
+    [ProducesResponseType(typeof(Result<PagedResult<GetUsersByNeighborhoodQueryResponse>>), 200)]
+    public async Task<IActionResult> GetUsersByNeighborhood(
+        [FromQuery] PaginationRequest pagination,
+        Guid neighborhoodId,
+        CancellationToken cancellationToken)
     {
-        var result = await mediator.Send(new GetUsersByNeighborhoodQuery(neighborhoodId), cancellationToken);
+        var result = await mediator.Send(
+            new GetUsersByNeighborhoodQuery(neighborhoodId)
+            {
+                PageIndex = pagination.PageIndex,
+                PageSize = pagination.PageSize
+            },
+            cancellationToken);
         return Ok(result);
     }
 }
