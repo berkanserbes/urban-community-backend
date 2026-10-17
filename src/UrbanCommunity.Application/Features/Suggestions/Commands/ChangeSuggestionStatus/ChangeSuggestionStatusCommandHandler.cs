@@ -46,8 +46,8 @@ public sealed class ChangeSuggestionStatusCommandHandler(
 
         var oldStatus = suggestion.Status;
         suggestion.ChangeStatus(request.NewStatus);
-        await context.SaveChangesAsync(cancellationToken);
 
+        // Published through the transactional outbox: SaveChanges stores it with the data below.
         await publishEndpoint.Publish(new SuggestionStatusChangedEvent
         {
             SuggestionId = suggestion.Id,
@@ -57,6 +57,8 @@ public sealed class ChangeSuggestionStatusCommandHandler(
             NewStatus = suggestion.Status,
             ChangedAt = DateTime.UtcNow
         }, cancellationToken);
+
+        await context.SaveChangesAsync(cancellationToken);
 
         return Result<ChangeSuggestionStatusCommandResponse>.Success(
             new ChangeSuggestionStatusCommandResponse(

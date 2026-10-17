@@ -1,3 +1,4 @@
+using MassTransit;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -43,5 +44,11 @@ public class ApplicationDbContext : IdentityDbContext<User, IdentityRole<Guid>, 
     {
         base.OnModelCreating(builder);
         builder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
+
+        // MassTransit transactional outbox: published messages are stored in the same
+        // transaction as the business data, and the inbox drops redelivered messages.
+        builder.AddInboxStateEntity();
+        builder.AddOutboxMessageEntity();
+        builder.AddOutboxStateEntity();
     }
 }

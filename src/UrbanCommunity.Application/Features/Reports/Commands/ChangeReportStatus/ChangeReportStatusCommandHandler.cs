@@ -50,27 +50,22 @@ public sealed class ChangeReportStatusCommandHandler(
         if (history is not null)
             context.ReportHistories.Add(history);
 
-        await context.SaveChangesAsync(cancellationToken);
-
         var changedAt = DateTime.UtcNow;
 
-        try
+        // Published through the transactional outbox: SaveChanges stores it with the data below.
+        // The broker is not called here, so a broker outage can no longer fail the request.
+        await publishEndpoint.Publish(new ReportStatusChangedEvent
         {
-            await publishEndpoint.Publish(new ReportStatusChangedEvent
-            {
-                ReportId = report.Id,
-                ReportTitle = report.Title,
-                ReportOwnerId = report.UserId,
-                OldStatus = oldStatus,
-                NewStatus = report.Status,
-                Note = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim(),
-                ChangedAt = changedAt
-            }, cancellationToken);
-        }
-        catch
-        {
-            // Bildirim gönderme başarısız olursa ana işlem etkilenmemeli.
-        }
+            ReportId = report.Id,
+            ReportTitle = report.Title,
+            ReportOwnerId = report.UserId,
+            OldStatus = oldStatus,
+            NewStatus = report.Status,
+            Note = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim(),
+            ChangedAt = changedAt
+        }, cancellationToken);
+
+        await context.SaveChangesAsync(cancellationToken);
 
         return Result<ChangeReportStatusCommandResponse>.Success(
             new ChangeReportStatusCommandResponse(

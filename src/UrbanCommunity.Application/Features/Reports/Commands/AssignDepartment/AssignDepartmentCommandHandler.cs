@@ -72,9 +72,9 @@ public sealed class AssignDepartmentCommandHandler(
                 context.ReportHistories.Add(history);
         }
 
-        await context.SaveChangesAsync(cancellationToken);
         var changedAt = DateTime.UtcNow;
 
+        // Published through the transactional outbox: SaveChanges stores it with the data below.
         await publishEndpoint.Publish(new ReportDepartmentChangedEvent
         {
             ReportId = report.Id,
@@ -106,6 +106,8 @@ public sealed class AssignDepartmentCommandHandler(
                 ChangedAt = changedAt
             }, cancellationToken);
         }
+
+        await context.SaveChangesAsync(cancellationToken);
 
         var message = request.OrganizationDepartmentId.HasValue
             ? previousStatus == ReportStatus.Confirmed

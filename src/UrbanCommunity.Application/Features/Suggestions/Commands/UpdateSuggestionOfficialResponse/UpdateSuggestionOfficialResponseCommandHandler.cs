@@ -42,18 +42,20 @@ public sealed class UpdateSuggestionOfficialResponseCommandHandler(
             ? null
             : request.OfficialResponse.Trim();
 
-        await context.SaveChangesAsync(cancellationToken);
-
         if (suggestion.OfficialResponse is not null)
         {
+            // Published through the transactional outbox: SaveChanges stores it with the data below.
+            // UpdatedAt is only set during SaveChanges, so the event takes the current time.
             await publishEndpoint.Publish(new SuggestionOfficialResponseUpdatedEvent
             {
                 SuggestionId = suggestion.Id,
                 SuggestionTitle = suggestion.Title,
                 SuggestionOwnerId = suggestion.UserId,
-                UpdatedAt = suggestion.UpdatedAt ?? DateTime.UtcNow
+                UpdatedAt = DateTime.UtcNow
             }, cancellationToken);
         }
+
+        await context.SaveChangesAsync(cancellationToken);
 
         return Result<UpdateSuggestionOfficialResponseCommandResponse>.Success(
             new UpdateSuggestionOfficialResponseCommandResponse(

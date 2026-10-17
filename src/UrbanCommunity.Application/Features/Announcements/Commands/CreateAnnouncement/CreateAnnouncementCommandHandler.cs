@@ -76,8 +76,8 @@ public sealed class CreateAnnouncementCommandHandler(
         };
 
         context.Announcements.Add(announcement);
-        await context.SaveChangesAsync(cancellationToken);
 
+        // Published through the transactional outbox: SaveChanges stores it with the data below.
         await publishEndpoint.Publish(new AnnouncementPublishedEvent
         {
             AnnouncementId = announcement.Id,
@@ -92,6 +92,8 @@ public sealed class CreateAnnouncementCommandHandler(
             ExpiresAt = announcement.ExpiresAt,
             CreatedAt = announcement.CreatedAt
         }, cancellationToken);
+
+        await context.SaveChangesAsync(cancellationToken);
 
         return Result<CreateAnnouncementCommandResponse>.Success(
             new CreateAnnouncementCommandResponse(

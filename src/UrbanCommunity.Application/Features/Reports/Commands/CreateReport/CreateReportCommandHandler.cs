@@ -103,6 +103,15 @@ public sealed class CreateReportCommandHandler(
             }
 
             context.Reports.Add(report);
+
+            // Published through the transactional outbox: SaveChanges stores it with the data below.
+            await publishEndpoint.Publish(new ReportAiReviewRequestedEvent
+            {
+                ReportId = report.Id,
+                IsInitialCategorization = true,
+                RequestedAt = DateTime.UtcNow
+            }, cancellationToken);
+
             await context.SaveChangesAsync(cancellationToken);
         }
         catch
@@ -110,13 +119,6 @@ public sealed class CreateReportCommandHandler(
             await DeleteFilesBestEffortAsync(uploadedUrls, cancellationToken);
             throw;
         }
-
-        await publishEndpoint.Publish(new ReportAiReviewRequestedEvent
-        {
-            ReportId = report.Id,
-            IsInitialCategorization = true,
-            RequestedAt = DateTime.UtcNow
-        }, cancellationToken);
 
         var media = report.Media
             .OrderBy(m => m.DisplayOrder)

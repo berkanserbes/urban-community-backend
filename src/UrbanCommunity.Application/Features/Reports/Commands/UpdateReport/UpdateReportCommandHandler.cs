@@ -73,6 +73,14 @@ public sealed class UpdateReportCommandHandler(
         if (history is not null)
             context.ReportHistories.Add(history);
 
+        // Published through the transactional outbox: SaveChanges stores it with the data below.
+        await publishEndpoint.Publish(new ReportAiReviewRequestedEvent
+        {
+            ReportId = report.Id,
+            IsInitialCategorization = false,
+            RequestedAt = DateTime.UtcNow
+        }, cancellationToken);
+
         try
         {
             await context.SaveChangesAsync(cancellationToken);
@@ -84,13 +92,6 @@ public sealed class UpdateReportCommandHandler(
         }
 
         await DeleteFilesBestEffortAsync(mediaResult.DeletedUrls, cancellationToken);
-
-        await publishEndpoint.Publish(new ReportAiReviewRequestedEvent
-        {
-            ReportId = report.Id,
-            IsInitialCategorization = false,
-            RequestedAt = DateTime.UtcNow
-        }, cancellationToken);
 
         var media = report.Media
             .OrderBy(m => m.DisplayOrder)
