@@ -1,0 +1,31 @@
+version: 2
+
+updates:
+  - package-ecosystem: nuget
+    directories:
+      - "/src/*"
+      - "/tests/*"
+    schedule:
+      interval: cron
+      cronjob: "0 9 1 */2 *" # 09:00 on the 1st of every second month
+      timezone: Europe/Istanbul
+    open-pull-requests-limit: 5
+    groups:
+      nuget-minor-and-patch:
+        update-types: [minor, patch]
+    commit-message:
+      prefix: chore
+      include: scope
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: cron
+      cronjob: "0 9 1 */2 *" # 09:00 on the 1st of every second month
+      timezone: Europe/Istanbul
+    groups:
+      github-actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: ci
+
