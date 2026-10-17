@@ -19,11 +19,11 @@ public static class Extensions
         builder.AddDefaultHealthChecks();
 
         builder.Services.AddServiceDiscovery();
-        builder.Services.ConfigureHttpClientDefaults(http =>
-        {
-            http.AddStandardResilienceHandler();
-            http.AddServiceDiscovery();
-        });
+
+        // No default resilience handler: its 10 s attempt timeout and automatic retries would
+        // cut long AI (LLM) calls short and resend them. The AI client sets its own timeout and
+        // failed AI work is retried by the MassTransit consumers.
+        builder.Services.ConfigureHttpClientDefaults(http => http.AddServiceDiscovery());
 
         return builder;
     }
