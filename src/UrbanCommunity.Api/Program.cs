@@ -116,19 +116,7 @@ try
 
     builder.Services.AddMassTransit(x =>
     {
-        x.SetKebabCaseEndpointNameFormatter();
-
-        x.AddConsumer<
-            ReportAiReviewRequestedConsumer,
-            ReportAiReviewRequestedConsumerDefinition>();
-        x.AddConsumer<ReportAiReviewFaultConsumer>();
-        x.AddConsumer<ReportCreatedConsumer>();
-        x.AddConsumer<ReportStatusChangedConsumer>();
-        x.AddConsumer<ReportDepartmentChangedConsumer>();
-        x.AddConsumer<FileUploadConsumer>();
-        x.AddConsumer<AnnouncementPublishedConsumer>();
-        x.AddConsumer<SuggestionStatusChangedConsumer>();
-        x.AddConsumer<SuggestionOfficialResponseUpdatedConsumer>();
+        x.AddMessaging();
 
         x.UsingRabbitMq((context, cfg) =>
         {
