@@ -39,8 +39,8 @@ public sealed class TransactionalOutboxTests(PostgresFixture postgres) : IClassF
             Assert.True(result.IsSuccess);
         }
 
-        Assert.True(await harness.Consumed.Any<SuggestionStatusChangedEvent>(
-            message => message.Context.Message.SuggestionId == suggestion.Id));
+        // The consumer's notification proves the event left the outbox after the commit. Polling the
+        // database avoids the harness inactivity timeout, which a cold CI runner can exceed.
         Assert.Equal(1, await CountNotificationsAsync(admin.Id, suggestion.Id, expected: 1));
     }
 
@@ -97,7 +97,12 @@ public sealed class TransactionalOutboxTests(PostgresFixture postgres) : IClassF
         services.AddDbContext<ApplicationDbContext>(options => postgres.Configure(options));
         services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
         services.AddSingleton<IRealtimeNotificationService, NoOpRealtimeNotificationService>();
-        services.AddMassTransitTestHarness(bus => bus.AddMessaging());
+        services.AddMassTransitTestHarness(bus =>
+        {
+            bus.AddMessaging();
+            // Generous timeouts: a cold CI runner can take a few seconds before outbox delivery starts.
+            bus.SetTestTimeouts(testTimeout: TimeSpan.FromMinutes(1), testInactivityTimeout: TimeSpan.FromSeconds(5));
+        });
         return services.BuildServiceProvider(validateScopes: true);
     }
 
