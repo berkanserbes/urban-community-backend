@@ -1,14 +1,16 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using UrbanCommunity.Application.Common.Extensions;
 using UrbanCommunity.Application.Common.Models;
+using UrbanCommunity.Application.Common.Projections;
 using UrbanCommunity.Application.Interfaces;
 
 namespace UrbanCommunity.Application.Features.Suggestions.Queries.GetSuggestions;
 
 public sealed class GetSuggestionsQueryHandler(IApplicationDbContext context)
-    : IRequestHandler<GetSuggestionsQuery, Result<IReadOnlyList<GetSuggestionsQueryResponse>>>
+    : IRequestHandler<GetSuggestionsQuery, Result<PagedResult<GetSuggestionsQueryResponse>>>
 {
-    public async Task<Result<IReadOnlyList<GetSuggestionsQueryResponse>>> Handle(GetSuggestionsQuery request, CancellationToken cancellationToken)
+    public async Task<Result<PagedResult<GetSuggestionsQueryResponse>>> Handle(GetSuggestionsQuery request, CancellationToken cancellationToken)
     {
         var requestingUserId = request.RequestingUserId;
 
@@ -34,6 +36,7 @@ public sealed class GetSuggestionsQueryHandler(IApplicationDbContext context)
         var suggestions = await query
             .OrderByDescending(s => s.VoteScore)
             .ThenByDescending(s => s.CreatedAt)
+            .ThenBy(s => s.Id)
             .Select(s => new GetSuggestionsQueryResponse(
                 s.Id,
                 s.Title,
@@ -44,7 +47,7 @@ public sealed class GetSuggestionsQueryHandler(IApplicationDbContext context)
                 s.Votes.Count(v => v.IsUpvote),
                 s.Votes.Count(v => !v.IsUpvote),
                 s.UserId,
-                (s.User.FirstName + " " + s.User.LastName).Trim(),
+                UserProjections.FullName.Invoke(s.User),
                 requestingUserId.HasValue
                     ? s.Votes
                         .Where(v => v.UserId == requestingUserId.Value)
@@ -52,8 +55,9 @@ public sealed class GetSuggestionsQueryHandler(IApplicationDbContext context)
                         .FirstOrDefault()
                     : null,
                 s.CreatedAt))
-            .ToListAsync(cancellationToken);
+            .Expand()
+            .ToPagedResultAsync(request.PageIndex, request.PageSize, cancellationToken);
 
-        return Result<IReadOnlyList<GetSuggestionsQueryResponse>>.Success(suggestions);
+        return Result<PagedResult<GetSuggestionsQueryResponse>>.Success(suggestions);
     }
 }
