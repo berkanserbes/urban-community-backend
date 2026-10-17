@@ -1,7 +1,9 @@
 using System.Text.Json;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using UrbanCommunity.Domain.Entities;
+using UrbanCommunity.Domain.Enums;
 
 namespace UrbanCommunity.Infrastructure.Persistence;
 
@@ -9,12 +11,22 @@ public class ApplicationDbContextSeed
 {
     private const int BatchSize = 10;
 
-    public static async Task SeedAsync(ApplicationDbContext context, ILoggerFactory loggerFactory, string contentRootPath)
+    public static async Task SeedAsync(
+        ApplicationDbContext context,
+        UserManager<User> userManager,
+        ILoggerFactory loggerFactory,
+        string contentRootPath,
+        bool seedDevelopmentAdmin)
     {
         var logger = loggerFactory.CreateLogger<ApplicationDbContextSeed>();
 
         try
         {
+            if (seedDevelopmentAdmin)
+            {
+                await SeedDevelopmentAdminAsync(userManager, logger);
+            }
+
             await SeedReportCategoriesAsync(context);
 
             if (await context.Provinces.AnyAsync())
@@ -95,7 +107,100 @@ public class ApplicationDbContextSeed
         catch (Exception ex)
         {
             logger.LogError(ex, "An error occurred during database seeding.");
+            throw;
         }
+    }
+
+    private static async Task SeedDevelopmentAdminAsync(
+        UserManager<User> userManager,
+        ILogger logger)
+    {
+        var email = Environment.GetEnvironmentVariable("DEV_ADMIN_EMAIL");
+        var password = Environment.GetEnvironmentVariable("DEV_ADMIN_PASSWORD");
+
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+        {
+            logger.LogWarning(
+                "DEV_ADMIN_EMAIL or DEV_ADMIN_PASSWORD is not set. Development admin seeding was skipped.");
+            return;
+        }
+
+        var firstName = Environment.GetEnvironmentVariable("DEV_ADMIN_FIRST_NAME");
+        var lastName = Environment.GetEnvironmentVariable("DEV_ADMIN_LAST_NAME");
+        firstName = string.IsNullOrWhiteSpace(firstName) ? "Admin" : firstName;
+        lastName = string.IsNullOrWhiteSpace(lastName) ? "User" : lastName;
+
+        var admin = await userManager.FindByEmailAsync(email);
+
+        if (admin is null)
+        {
+            admin = new User
+            {
+                FirstName = firstName,
+                LastName = lastName,
+                Email = email,
+                UserName = email,
+                EmailConfirmed = true,
+                Role = UserRole.Admin,
+                IsActive = true
+            };
+
+            var createResult = await userManager.CreateAsync(
+                admin,
+                password);
+
+            EnsureIdentitySucceeded(
+                createResult,
+                "Development admin user could not be created.");
+
+            logger.LogInformation(
+                "Development admin user was created: {Email}",
+                email);
+            return;
+        }
+
+        admin.FirstName = firstName;
+        admin.LastName = lastName;
+        admin.Email = email;
+        admin.UserName = email;
+        admin.EmailConfirmed = true;
+        admin.Role = UserRole.Admin;
+        admin.IsActive = true;
+        admin.UpdateAccess(UserRole.Admin);
+
+        var updateResult = await userManager.UpdateAsync(admin);
+        EnsureIdentitySucceeded(
+            updateResult,
+            "Development admin user could not be updated.");
+
+        if (!await userManager.CheckPasswordAsync(
+                admin,
+                password))
+        {
+            var resetToken = await userManager.GeneratePasswordResetTokenAsync(admin);
+            var resetResult = await userManager.ResetPasswordAsync(
+                admin,
+                resetToken,
+                password);
+
+            EnsureIdentitySucceeded(
+                resetResult,
+                "Development admin password could not be reset.");
+        }
+    }
+
+    private static void EnsureIdentitySucceeded(
+        IdentityResult result,
+        string message)
+    {
+        if (result.Succeeded)
+            return;
+
+        var errors = string.Join(
+            "; ",
+            result.Errors.Select(error => error.Description));
+
+        throw new InvalidOperationException($"{message} {errors}");
     }
 
     private static async Task SeedReportCategoriesAsync(ApplicationDbContext context)
