@@ -1,5 +1,6 @@
 using FluentValidation;
 using MediatR;
+using UrbanCommunity.Application.Common.Models;
 
 namespace UrbanCommunity.Application.Behaviors;
 
@@ -11,31 +12,26 @@ public class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TReques
     where TRequest : IRequest<TResponse>
 {
     private readonly IEnumerable<IValidator<TRequest>> _validators;
+    private readonly IValidator<PaginationRequest> _paginationValidator;
 
-    public ValidationBehavior(IEnumerable<IValidator<TRequest>> validators)
+    public ValidationBehavior(IEnumerable<IValidator<TRequest>> validators, IValidator<PaginationRequest> paginationValidator)
     {
         _validators = validators;
+        _paginationValidator = paginationValidator;
     }
 
     public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
-        if (_validators.Any())
-        {
-            var context = new ValidationContext<TRequest>(request);
+        var context = new ValidationContext<TRequest>(request);
+        var validations = _validators.Select(v => v.ValidateAsync(context, cancellationToken)).ToList();
 
-        var validationResults = await Task.WhenAll(
-                _validators.Select(v => v.ValidateAsync(context, cancellationToken)));
+        if (request is PaginationRequest pagination)
+            validations.Add(_paginationValidator.ValidateAsync(pagination, cancellationToken));
 
-            var failures = validationResults
-                .SelectMany(r => r.Errors)
-                .Where(f => f != null)
-                .ToList();
-
-            if (failures.Count != 0)
-            {
-                throw new ValidationException(failures);
-            }
-        }
+        var validationResults = await Task.WhenAll(validations);
+        var failures = validationResults.SelectMany(result => result.Errors).ToList();
+        if (failures.Count != 0)
+            throw new ValidationException(failures);
 
         return await next(cancellationToken);
     }
