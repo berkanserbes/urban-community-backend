@@ -278,11 +278,14 @@ public static class ServiceCollectionExtensions
 
     private static IServiceCollection AddReadinessHealthChecks(this IServiceCollection services)
     {
+        // An unreachable dependency must fail the check quickly instead of hanging the probe.
+        var timeout = TimeSpan.FromSeconds(5);
+
         services.AddHealthChecks()
-            .AddCheck<DatabaseHealthCheck>("postgresql", tags: ["ready"])
-            .AddCheck<RedisHealthCheck>("redis", tags: ["ready"])
-            .AddCheck<RabbitMqHealthCheck>("rabbitmq", tags: ["ready"])
-            .AddCheck<AiServiceHealthCheck>("ai-service", tags: ["ready"]);
+            .AddCheck<DatabaseHealthCheck>("postgresql", tags: ["ready"], timeout: timeout)
+            .AddCheck<RedisHealthCheck>("redis", tags: ["ready"], timeout: timeout)
+            .AddCheck<RabbitMqHealthCheck>("rabbitmq", tags: ["ready"], timeout: timeout)
+            .AddCheck<AiServiceHealthCheck>("ai-service", tags: ["ready"], timeout: timeout);
 
         return services;
     }
