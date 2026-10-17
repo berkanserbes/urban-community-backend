@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using UrbanCommunity.Application.Common.Models;
 using UrbanCommunity.Application.Features.Votes.Commands.RemoveSuggestionVote;
 using UrbanCommunity.Application.Features.Votes.Commands.SetSuggestionVote;
 using UrbanCommunity.Application.Features.Votes.Queries.GetSuggestionVoteSummary;
@@ -56,9 +57,20 @@ public class VotesController(IMediator mediator) : ApiController
     /// </summary>
     [HttpGet("voters")]
     [Authorize(Roles = "Admin,Official")]
-    public async Task<IActionResult> GetSuggestionVoters(Guid suggestionId, CancellationToken cancellationToken)
+    [ProducesResponseType(typeof(Result<PagedResult<VoterItem>>), 200)]
+    public async Task<IActionResult> GetSuggestionVoters(
+        [FromQuery] PaginationRequest pagination,
+        [FromQuery] bool? isUpvote,
+        Guid suggestionId,
+        CancellationToken cancellationToken)
     {
-        var result = await mediator.Send(new GetSuggestionVotersQuery(suggestionId), cancellationToken);
+        var result = await mediator.Send(
+            new GetSuggestionVotersQuery(suggestionId, isUpvote)
+            {
+                PageIndex = pagination.PageIndex,
+                PageSize = pagination.PageSize
+            },
+            cancellationToken);
         return Ok(result);
     }
 }

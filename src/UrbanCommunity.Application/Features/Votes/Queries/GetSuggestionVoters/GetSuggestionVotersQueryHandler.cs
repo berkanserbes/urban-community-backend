@@ -1,16 +1,18 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using UrbanCommunity.Application.Common.Exceptions;
+using UrbanCommunity.Application.Common.Extensions;
 using UrbanCommunity.Application.Common.Models;
+using UrbanCommunity.Application.Common.Projections;
 using UrbanCommunity.Application.Interfaces;
 using UrbanCommunity.Domain.Entities;
 
 namespace UrbanCommunity.Application.Features.Votes.Queries.GetSuggestionVoters;
 
 public sealed class GetSuggestionVotersQueryHandler(IApplicationDbContext context)
-    : IRequestHandler<GetSuggestionVotersQuery, Result<GetSuggestionVotersQueryResponse>>
+    : IRequestHandler<GetSuggestionVotersQuery, Result<PagedResult<VoterItem>>>
 {
-    public async Task<Result<GetSuggestionVotersQueryResponse>> Handle(GetSuggestionVotersQuery request, CancellationToken cancellationToken)
+    public async Task<Result<PagedResult<VoterItem>>> Handle(GetSuggestionVotersQuery request, CancellationToken cancellationToken)
     {
         var suggestionExists = await context.Suggestions
             .AnyAsync(s => s.Id == request.SuggestionId, cancellationToken);
@@ -18,27 +20,23 @@ public sealed class GetSuggestionVotersQueryHandler(IApplicationDbContext contex
         if (!suggestionExists)
             throw new NotFoundException(nameof(Suggestion), request.SuggestionId);
 
-        var votes = await context.Votes
-            .Where(v => v.SuggestionId == request.SuggestionId)
-            .Include(v => v.User)
+        var query = context.Votes.AsNoTracking()
+            .Where(v => v.SuggestionId == request.SuggestionId);
+
+        if (request.IsUpvote.HasValue)
+            query = query.Where(v => v.IsUpvote == request.IsUpvote.Value);
+
+        var voters = await query
             .OrderBy(v => v.CreatedAt)
-            .ToListAsync(cancellationToken);
+            .ThenBy(v => v.Id)
+            .Select(v => new VoterItem(
+                v.UserId,
+                UserProjections.FullName.Invoke(v.User),
+                v.CreatedAt,
+                v.IsUpvote))
+            .Expand()
+            .ToPagedResultAsync(request.PageIndex, request.PageSize, cancellationToken);
 
-        var upvoters = votes
-            .Where(v => v.IsUpvote)
-            .Select(v => new VoterItem(v.UserId, v.User.FullName, v.CreatedAt))
-            .ToList();
-
-        var downvoters = votes
-            .Where(v => !v.IsUpvote)
-            .Select(v => new VoterItem(v.UserId, v.User.FullName, v.CreatedAt))
-            .ToList();
-
-        return Result<GetSuggestionVotersQueryResponse>.Success(
-            new GetSuggestionVotersQueryResponse(
-                upvoters.Count,
-                downvoters.Count,
-                upvoters,
-                downvoters));
+        return Result<PagedResult<VoterItem>>.Success(voters);
     }
 }
