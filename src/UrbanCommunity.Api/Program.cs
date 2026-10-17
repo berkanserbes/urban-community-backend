@@ -17,6 +17,7 @@ using UrbanCommunity.Domain.Enums;
 using UrbanCommunity.Infrastructure;
 using UrbanCommunity.Infrastructure.Consumers;
 using UrbanCommunity.Infrastructure.Persistence;
+using UrbanCommunity.ServiceDefaults;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
@@ -28,12 +29,15 @@ try
 
     var builder = WebApplication.CreateBuilder(args);
 
+    builder.AddServiceDefaults();
     builder.WebHost.ConfigureKestrelLimits();
 
     var envFile = builder.Environment.IsDevelopment() ? ".env.development" : ".env";
     if (File.Exists(envFile))
     {
-        DotNetEnv.Env.Load(envFile);
+        DotNetEnv.Env.Load(
+            envFile,
+            options: new DotNetEnv.LoadOptions(clobberExistingVars: false));
         builder.Configuration.AddEnvironmentVariables();
     }
 
@@ -170,6 +174,7 @@ try
 
     app.MapControllers();
     app.MapHub<NotificationHub>("/hubs/notifications");
+    app.MapDefaultEndpoints();
 
     app.Run();
 }

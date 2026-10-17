@@ -23,6 +23,56 @@ namespace UrbanCommunity.Infrastructure.Migrations
                 name: "CK_AspNetUsers_DepartmentId_Requires_OfficialRole",
                 table: "AspNetUsers");
 
+            migrationBuilder.Sql("""
+                WITH source_provinces AS (
+                    SELECT DISTINCT
+                        COALESCE(NULLIF(BTRIM("City"), ''), 'Unknown Province') AS "Name"
+                    FROM "Neighborhoods"
+                )
+                INSERT INTO "Provinces" ("Id", "Name", "CreatedAt", "UpdatedAt")
+                SELECT gen_random_uuid(), source_provinces."Name", NOW(), NULL
+                FROM source_provinces
+                WHERE NOT EXISTS (
+                    SELECT 1
+                    FROM "Provinces"
+                    WHERE "Provinces"."Name" = source_provinces."Name"
+                );
+
+                WITH source_districts AS (
+                    SELECT DISTINCT
+                        COALESCE(NULLIF(BTRIM("Neighborhoods"."District"), ''), 'Unknown District') AS "DistrictName",
+                        "Provinces"."Id" AS "ProvinceId"
+                    FROM "Neighborhoods"
+                    INNER JOIN "Provinces"
+                        ON "Provinces"."Name" = COALESCE(NULLIF(BTRIM("Neighborhoods"."City"), ''), 'Unknown Province')
+                )
+                INSERT INTO "Districts" ("Id", "Name", "ProvinceId", "CreatedAt", "UpdatedAt")
+                SELECT gen_random_uuid(), source_districts."DistrictName", source_districts."ProvinceId", NOW(), NULL
+                FROM source_districts
+                WHERE NOT EXISTS (
+                    SELECT 1
+                    FROM "Districts"
+                    WHERE "Districts"."Name" = source_districts."DistrictName"
+                      AND "Districts"."ProvinceId" = source_districts."ProvinceId"
+                );
+
+                UPDATE "Neighborhoods"
+                SET "DistrictId" = "Districts"."Id"
+                FROM "Districts"
+                INNER JOIN "Provinces"
+                    ON "Provinces"."Id" = "Districts"."ProvinceId"
+                WHERE COALESCE(NULLIF(BTRIM("Neighborhoods"."District"), ''), 'Unknown District') = "Districts"."Name"
+                  AND COALESCE(NULLIF(BTRIM("Neighborhoods"."City"), ''), 'Unknown Province') = "Provinces"."Name"
+                  AND (
+                      "Neighborhoods"."DistrictId" IS NULL
+                      OR NOT EXISTS (
+                          SELECT 1
+                          FROM "Districts" existing_districts
+                          WHERE existing_districts."Id" = "Neighborhoods"."DistrictId"
+                      )
+                  );
+                """);
+
             migrationBuilder.AlterColumn<Guid>(
                 name: "DistrictId",
                 table: "Neighborhoods",

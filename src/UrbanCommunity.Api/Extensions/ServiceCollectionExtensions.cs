@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.OpenApi;
 using Scalar.AspNetCore;
 using UrbanCommunity.Api.Constants;
+using UrbanCommunity.Api.HealthChecks;
 using UrbanCommunity.Api.Services;
 using UrbanCommunity.Application.Interfaces;
 
@@ -36,7 +37,8 @@ public static class ServiceCollectionExtensions
             .AddCompression()
             .AddUploadLimits()
             .AddAuthRateLimiting()
-            .AddRealtimeServices();
+            .AddRealtimeServices()
+            .AddReadinessHealthChecks();
 
         return services;
     }
@@ -270,6 +272,20 @@ public static class ServiceCollectionExtensions
     {
         services.AddSignalR();
         services.AddScoped<IRealtimeNotificationService, SignalRNotificationService>();
+
+        return services;
+    }
+
+    private static IServiceCollection AddReadinessHealthChecks(this IServiceCollection services)
+    {
+        // An unreachable dependency must fail the check quickly instead of hanging the probe.
+        var timeout = TimeSpan.FromSeconds(5);
+
+        services.AddHealthChecks()
+            .AddCheck<DatabaseHealthCheck>("postgresql", tags: ["ready"], timeout: timeout)
+            .AddCheck<RedisHealthCheck>("redis", tags: ["ready"], timeout: timeout)
+            .AddCheck<RabbitMqHealthCheck>("rabbitmq", tags: ["ready"], timeout: timeout)
+            .AddCheck<AiServiceHealthCheck>("ai-service", tags: ["ready"], timeout: timeout);
 
         return services;
     }

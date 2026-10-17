@@ -27,6 +27,7 @@
   <ItemGroup>
     <ProjectReference Include="..\UrbanCommunity.Infrastructure\UrbanCommunity.Infrastructure.csproj" />
     <ProjectReference Include="..\UrbanCommunity.Application\UrbanCommunity.Application.csproj" />
+    <ProjectReference Include="..\UrbanCommunity.ServiceDefaults\UrbanCommunity.ServiceDefaults.csproj" />
   </ItemGroup>
 
 </Project>
