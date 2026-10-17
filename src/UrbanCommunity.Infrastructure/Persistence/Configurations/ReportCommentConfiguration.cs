@@ -23,5 +23,8 @@ public class ReportCommentConfiguration : BaseEntityConfiguration<ReportComment>
             .WithMany(report => report.Comments)
             .HasForeignKey(comment => comment.ReportId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // Yorumlar ait oldukları kayda göre CreatedAt sırasıyla sayfalanır
+        builder.HasIndex(comment => new { comment.ReportId, comment.CreatedAt });
     }
 }

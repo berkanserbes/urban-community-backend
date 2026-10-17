@@ -23,5 +23,8 @@ public class SuggestionCommentConfiguration : BaseEntityConfiguration<Suggestion
             .WithMany(suggestion => suggestion.Comments)
             .HasForeignKey(comment => comment.SuggestionId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // Yorumlar ait oldukları kayda göre CreatedAt sırasıyla sayfalanır
+        builder.HasIndex(comment => new { comment.SuggestionId, comment.CreatedAt });
     }
 }

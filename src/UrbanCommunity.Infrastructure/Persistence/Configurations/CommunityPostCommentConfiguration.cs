@@ -23,5 +23,8 @@ public class CommunityPostCommentConfiguration : BaseEntityConfiguration<Communi
             .WithMany(post => post.Comments)
             .HasForeignKey(comment => comment.CommunityPostId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // Yorumlar ait oldukları kayda göre CreatedAt sırasıyla sayfalanır
+        builder.HasIndex(comment => new { comment.CommunityPostId, comment.CreatedAt });
     }
 }

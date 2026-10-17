@@ -61,8 +61,12 @@ public class ReportConfiguration : BaseEntityConfiguration<Report>
         builder.HasIndex(r => r.Priority);
         builder.HasIndex(r => new { r.NeighborhoodId, r.Status });
         builder.HasIndex(r => r.ContentHash);
-        builder.HasIndex(r => r.AssignedOrganizationDepartmentId);
         builder.HasIndex(r => r.AssignmentNeedsReview);
+
+        // Sayfalı rapor listeleri bu filtrelerle CreatedAt'e göre sıralanır
+        builder.HasIndex(r => new { r.NeighborhoodId, r.CreatedAt });
+        builder.HasIndex(r => new { r.UserId, r.CreatedAt });
+        builder.HasIndex(r => new { r.AssignedOrganizationDepartmentId, r.CreatedAt });
 
         // PostGIS Spatial Index (konum bazlı sorguları hızlandırır)
         builder.HasIndex(r => r.Location)
