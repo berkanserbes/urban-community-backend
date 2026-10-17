@@ -24,8 +24,6 @@ namespace UrbanCommunity.Infrastructure.Migrations
                 table: "AspNetUsers");
 
             migrationBuilder.Sql("""
-                CREATE EXTENSION IF NOT EXISTS pgcrypto;
-
                 WITH source_provinces AS (
                     SELECT DISTINCT
                         COALESCE(NULLIF(BTRIM("City"), ''), 'Unknown Province') AS "Name"
