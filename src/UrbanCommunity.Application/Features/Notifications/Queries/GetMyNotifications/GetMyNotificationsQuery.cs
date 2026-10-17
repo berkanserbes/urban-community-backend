@@ -5,4 +5,4 @@ namespace UrbanCommunity.Application.Features.Notifications.Queries.GetMyNotific
 
 public sealed record GetMyNotificationsQuery(
     Guid UserId,
-    bool? IsRead = null) : IRequest<Result<IReadOnlyList<GetMyNotificationsQueryResponse>>>;
+    bool? IsRead = null) : PaginationRequest, IRequest<Result<PagedResult<GetMyNotificationsQueryResponse>>>;
