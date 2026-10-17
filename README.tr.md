@@ -72,6 +72,11 @@ flowchart LR
 Geçici yapay zekâ hatalarını MassTransit yeniden dener. Denemeler tükenirse bir fault consumer
 incelemeyi varsayılan değerlerle tamamlar; böylece hiçbir rapor `AiReview` durumunda kalmaz.
 
+Mesajlaşmada MassTransit transactional outbox kullanılır. Olaylar, onları doğuran değişiklikle aynı
+veritabanı transaction'ında kaydedilir ve commit'ten sonra RabbitMQ'ya gönderilir; böylece broker
+kesintisinde kaybolmaz. Consumer tarafında inbox her mesajın kimliğini tutar; tekrar teslim edilen
+bir mesaj ikinci kez işlenmez (örneğin çift bildirim oluşmaz).
+
 ## Özellikler
 
 - **Raporlar:** fotoğraf yükleme, isteğe bağlı konum (PostGIS), yapay zekâ ile kategori, öncelik ve
@@ -90,7 +95,8 @@ incelemeyi varsayılan değerlerle tamamlar; böylece hiçbir rapor `AiReview` d
 ## Öne çıkan mühendislik çözümleri
 
 - MediatR ile CQRS uygulanan Clean Architecture; doğrulama (FluentValidation) ve cache için pipeline davranışları.
-- MassTransit ve RabbitMQ ile olay tabanlı işleme; yeniden deneme ve fault consumer dahil.
+- MassTransit ve RabbitMQ ile olay tabanlı işleme: transactional outbox, tekrar teslime dayanıklı
+  (idempotent) consumer'lar (inbox), yeniden deneme ve fault consumer.
 - Redis dağıtık cache ve otomatik in-memory yedeği.
 - Refresh token rotasyonlu JWT kimlik doğrulama ve kimlik doğrulama endpoint'lerinde rate limiting.
 - SQL'e çevrilen offset sayfalama ve her sayfalı sıralama için bileşik index'ler.
@@ -179,8 +185,9 @@ API açılışta migration'ları uygular; rapor kategorilerini ve il, ilçe, mah
 dotnet test tests/UrbanCommunity.Infrastructure.Tests/UrbanCommunity.Infrastructure.Tests.csproj
 ```
 
-Testler harici bir servise ihtiyaç duymaz. EF Core InMemory ve SQLite veritabanlarıyla, uygulama içi
-bir test sunucusu kullanır.
+Testlerin çoğu EF Core InMemory ve SQLite veritabanlarıyla, uygulama içi bir test sunucusu kullanır.
+Mesajlaşma testleri Testcontainers ile Docker'da PostGIS'li PostgreSQL başlatır; bu yüzden Docker
+çalışıyor olmalıdır.
 
 ## Dokümantasyon
 

@@ -42,6 +42,15 @@ Uygulama DbSet'leri:
 | `UserRefreshTokens` | `UserRefreshTokens` | Refresh token kayitlari |
 | `AuditLogs` | `AuditLogs` | Kurum, Official erisimi ve rapor atama degisiklikleri |
 
+MassTransit transactional outbox tablolari (`AddInboxStateEntity`, `AddOutboxMessageEntity`,
+`AddOutboxStateEntity` ile eklenir, uygulama kodu dogrudan kullanmaz):
+
+| Tablo | Aciklama |
+| --- | --- |
+| `OutboxMessage` | Commit edilmis ama henuz RabbitMQ'ya gonderilmemis mesajlar |
+| `OutboxState` | Bus outbox teslim durumu (istek tarafinda yayinlanan mesajlar) |
+| `InboxState` | Consumer'larin isledigi mesaj kimlikleri; tekrar teslim edilen mesajlari eler |
+
 Identity tarafinda ayrica `AspNetRoles`, `AspNetUserRoles`, `AspNetUserClaims`, `AspNetRoleClaims`, `AspNetUserLogins`, `AspNetUserTokens` tablolari olusur.
 
 ## ER Diyagrami

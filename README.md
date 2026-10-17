@@ -72,6 +72,11 @@ The solution follows Clean Architecture:
 Transient AI failures are retried by MassTransit. If retries run out, a fault consumer completes the
 review with default values so that no report stays in `AiReview`.
 
+Messaging uses the MassTransit transactional outbox. Events are saved in the same database transaction
+as the change that raised them and sent to RabbitMQ after the commit, so a broker outage cannot lose
+them. On the consumer side the inbox records every message id, so a redelivered message is not
+processed twice (for example, no duplicate notifications).
+
 ## Features
 
 - **Reports:** photo uploads, optional location (PostGIS), AI categorization, priority and duplicate
@@ -90,7 +95,8 @@ review with default values so that no report stays in `AiReview`.
 ## Engineering highlights
 
 - Clean Architecture with CQRS (MediatR) and pipeline behaviors for validation (FluentValidation) and caching.
-- Event-driven processing with MassTransit and RabbitMQ, including retries and a fault consumer.
+- Event-driven processing with MassTransit and RabbitMQ: transactional outbox, idempotent consumers
+  (inbox), retries and a fault consumer.
 - Redis distributed cache with an automatic in-memory fallback.
 - JWT authentication with refresh-token rotation and rate limiting on authentication endpoints.
 - Offset pagination translated to SQL, with composite indexes for every paged sort order.
@@ -180,8 +186,8 @@ development admin account.
 dotnet test tests/UrbanCommunity.Infrastructure.Tests/UrbanCommunity.Infrastructure.Tests.csproj
 ```
 
-The tests need no external services. They use EF Core InMemory and SQLite databases and an in-process
-test server.
+Most tests use EF Core InMemory and SQLite databases and an in-process test server. The messaging
+tests start PostgreSQL with PostGIS in Docker through Testcontainers, so Docker must be running.
 
 ## Documentation
 
