@@ -11,4 +11,4 @@ public sealed record GetReportsQuery(
     ReportStatus? Status = null,
     Guid? CategoryId = null,
     Guid? AssignedOrganizationDepartmentId = null,
-    Guid? UserId = null) : IRequest<Result<IReadOnlyList<GetReportsQueryResponse>>>;
+    Guid? UserId = null) : PaginationRequest, IRequest<Result<PagedResult<GetReportsQueryResponse>>>;

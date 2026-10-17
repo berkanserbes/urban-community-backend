@@ -1,6 +1,8 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using UrbanCommunity.Application.Common.Extensions;
 using UrbanCommunity.Application.Common.Models;
+using UrbanCommunity.Application.Common.Projections;
 using UrbanCommunity.Application.Interfaces;
 using UrbanCommunity.Domain.Enums;
 
@@ -9,9 +11,9 @@ namespace UrbanCommunity.Application.Features.Reports.Queries.GetReports;
 public sealed class GetReportsQueryHandler(
     IApplicationDbContext context,
     IReportManagementAuthorizationService authorizationService)
-    : IRequestHandler<GetReportsQuery, Result<IReadOnlyList<GetReportsQueryResponse>>>
+    : IRequestHandler<GetReportsQuery, Result<PagedResult<GetReportsQueryResponse>>>
 {
-public async Task<Result<IReadOnlyList<GetReportsQueryResponse>>> Handle(GetReportsQuery request, CancellationToken cancellationToken)
+    public async Task<Result<PagedResult<GetReportsQueryResponse>>> Handle(GetReportsQuery request, CancellationToken cancellationToken)
     {
         var query = context.Reports
             .AsNoTracking()
@@ -71,6 +73,7 @@ public async Task<Result<IReadOnlyList<GetReportsQueryResponse>>> Handle(GetRepo
 
         var reports = await query
             .OrderByDescending(r => r.CreatedAt)
+            .ThenBy(r => r.Id)
             .Select(r => new GetReportsQueryResponse(
                 r.Id,
                 r.Title,
@@ -80,7 +83,7 @@ public async Task<Result<IReadOnlyList<GetReportsQueryResponse>>> Handle(GetRepo
                 r.Location != null ? r.Location.Y : null,
                 r.Location != null ? r.Location.X : null,
                 r.UserId,
-                r.User.FirstName + " " + r.User.LastName,
+                UserProjections.FullName.Invoke(r.User),
                 r.CategoryId,
                 r.Category.Name,
                 r.NeighborhoodId,
@@ -118,8 +121,9 @@ public async Task<Result<IReadOnlyList<GetReportsQueryResponse>>> Handle(GetRepo
                     .OrderBy(m => m.DisplayOrder)
                     .Select(m => m.ThumbnailUrl ?? m.Url)
                     .FirstOrDefault()))
-            .ToListAsync(cancellationToken);
+            .Expand()
+            .ToPagedResultAsync(request.PageIndex, request.PageSize, cancellationToken);
 
-        return Result<IReadOnlyList<GetReportsQueryResponse>>.Success(reports);
+        return Result<PagedResult<GetReportsQueryResponse>>.Success(reports);
     }
 }

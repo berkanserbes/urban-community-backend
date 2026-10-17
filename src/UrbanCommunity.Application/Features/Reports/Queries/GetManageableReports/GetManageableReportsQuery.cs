@@ -12,4 +12,4 @@ public sealed record GetManageableReportsQuery(
     ReportStatus? Status = null,
     Guid? CategoryId = null,
     Guid? AssignedOrganizationDepartmentId = null)
-    : IRequest<Result<IReadOnlyList<GetReportsQueryResponse>>>;
+    : PaginationRequest, IRequest<Result<PagedResult<GetReportsQueryResponse>>>;

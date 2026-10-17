@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using UrbanCommunity.Api.Constants;
+using UrbanCommunity.Application.Common.Models;
 using UrbanCommunity.Application.Features.Reports.Commands.AssignDepartment;
 using UrbanCommunity.Application.Features.Reports.Commands.ChangeReportPriority;
 using UrbanCommunity.Application.Features.Reports.Commands.ChangeReportStatus;
@@ -24,7 +25,9 @@ namespace UrbanCommunity.Api.Controllers;
 public class ReportsController(IMediator mediator) : ApiController
 {
     [HttpGet]
+    [ProducesResponseType(typeof(Result<PagedResult<GetReportsQueryResponse>>), 200)]
     public async Task<IActionResult> GetAll(
+        [FromQuery] PaginationRequest pagination,
         [FromQuery] string? scope,
         [FromQuery] ReportStatus? status,
         [FromQuery] Guid? categoryId,
@@ -38,18 +41,28 @@ public class ReportsController(IMediator mediator) : ApiController
                 Scope: scope,
                 Status: status,
                 CategoryId: categoryId,
-                AssignedOrganizationDepartmentId: assignedOrganizationDepartmentId),
+                AssignedOrganizationDepartmentId: assignedOrganizationDepartmentId)
+            {
+                PageIndex = pagination.PageIndex,
+                PageSize = pagination.PageSize
+            },
             cancellationToken);
         return Ok(result);
     }
 
     [HttpGet("mine")]
+    [ProducesResponseType(typeof(Result<PagedResult<GetReportsQueryResponse>>), 200)]
     public async Task<IActionResult> GetMine(
+        [FromQuery] PaginationRequest pagination,
         [FromQuery] ReportStatus? status,
         CancellationToken cancellationToken)
     {
         var result = await mediator.Send(
-            new GetReportsQuery(Status: status, UserId: GetCurrentUserId()),
+            new GetReportsQuery(Status: status, UserId: GetCurrentUserId())
+            {
+                PageIndex = pagination.PageIndex,
+                PageSize = pagination.PageSize
+            },
             cancellationToken);
 
         return Ok(result);
@@ -57,7 +70,9 @@ public class ReportsController(IMediator mediator) : ApiController
 
     [HttpGet("manageable")]
     [Authorize(Roles = "Admin,Official")]
+    [ProducesResponseType(typeof(Result<PagedResult<GetReportsQueryResponse>>), 200)]
     public async Task<IActionResult> GetManageable(
+        [FromQuery] PaginationRequest pagination,
         [FromQuery] Guid? neighborhoodId,
         [FromQuery] ReportStatus? status,
         [FromQuery] Guid? categoryId,
@@ -71,7 +86,11 @@ public class ReportsController(IMediator mediator) : ApiController
                 neighborhoodId,
                 status,
                 categoryId,
-                assignedOrganizationDepartmentId),
+                assignedOrganizationDepartmentId)
+            {
+                PageIndex = pagination.PageIndex,
+                PageSize = pagination.PageSize
+            },
             cancellationToken);
 
         return Ok(result);

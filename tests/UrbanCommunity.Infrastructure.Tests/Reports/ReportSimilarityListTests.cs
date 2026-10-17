@@ -49,7 +49,7 @@ public sealed class ReportSimilarityListTests
         var result = await handler.Handle(new GetReportsQuery(), CancellationToken.None);
 
         Assert.True(result.IsSuccess);
-        var primary = Assert.Single(result.Data!, report => report.Id == seed.PrimaryReport.Id);
+        var primary = Assert.Single(result.Data!.Items, report => report.Id == seed.PrimaryReport.Id);
         Assert.Equal(2, primary.SimilarReportCount);
     }
 
