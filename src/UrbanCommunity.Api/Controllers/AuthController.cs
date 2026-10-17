@@ -1,6 +1,8 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using UrbanCommunity.Api.Constants;
 using UrbanCommunity.Application.Features.Auth.Commands.LoginUser;
 using UrbanCommunity.Application.Features.Auth.Commands.LogoutUser;
 using UrbanCommunity.Application.Features.Auth.Commands.RefreshToken;
@@ -20,6 +22,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("register")]
+    [EnableRateLimiting(ApiConstants.AuthRegisterRateLimitPolicy)]
     public async Task<IActionResult> Register([FromBody] RegisterUserCommand command)
     {
         var result = await _mediator.Send(command);
@@ -33,6 +36,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
+    [EnableRateLimiting(ApiConstants.AuthLoginRateLimitPolicy)]
     public async Task<IActionResult> Login([FromBody] LoginUserCommand command)
     {
         var result = await _mediator.Send(command);
@@ -46,6 +50,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("refresh-token")]
+    [EnableRateLimiting(ApiConstants.AuthRefreshTokenRateLimitPolicy)]
     public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenCommand command)
     {
         var result = await _mediator.Send(command);

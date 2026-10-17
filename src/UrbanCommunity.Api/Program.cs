@@ -154,6 +154,7 @@ try
     app.UseResponseCompression();
     app.UseRequestDecompression();
     app.UseStaticFiles();
+    app.UseRouting();
     app.UseCors("MobilePolicy");
 
     if (app.Environment.IsDevelopment())
@@ -162,6 +163,7 @@ try
     }
 
     app.UseHttpsRedirection();
+    app.UseRateLimiter();
     app.UseAuthentication();
     app.UseMiddleware<UrbanCommunity.Api.Middlewares.RequiredPasswordChangeMiddleware>();
     app.UseAuthorization();
