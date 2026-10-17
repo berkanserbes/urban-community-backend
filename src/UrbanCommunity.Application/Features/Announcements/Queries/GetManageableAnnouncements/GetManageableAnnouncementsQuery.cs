@@ -6,4 +6,4 @@ namespace UrbanCommunity.Application.Features.Announcements.Queries.GetManageabl
 
 public sealed record GetManageableAnnouncementsQuery(
     Guid RequestingUserId,
-    bool IsAdmin) : IRequest<Result<IReadOnlyList<GetAnnouncementsQueryResponse>>>;
+    bool IsAdmin) : PaginationRequest, IRequest<Result<PagedResult<GetAnnouncementsQueryResponse>>>;

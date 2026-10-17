@@ -15,4 +15,4 @@ public sealed record GetAnnouncementsQuery(
     Guid? ProvinceId = null,
     Guid? DistrictId = null,
     Guid? NeighborhoodId = null,
-    bool? IsActive = null) : IRequest<Result<IReadOnlyList<GetAnnouncementsQueryResponse>>>;
+    bool? IsActive = null) : PaginationRequest, IRequest<Result<PagedResult<GetAnnouncementsQueryResponse>>>;

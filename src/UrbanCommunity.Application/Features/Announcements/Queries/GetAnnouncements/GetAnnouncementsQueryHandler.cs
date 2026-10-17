@@ -1,7 +1,9 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using UrbanCommunity.Application.Common.Exceptions;
+using UrbanCommunity.Application.Common.Extensions;
 using UrbanCommunity.Application.Common.Models;
+using UrbanCommunity.Application.Common.Projections;
 using UrbanCommunity.Application.Interfaces;
 using UrbanCommunity.Domain.Entities;
 using UrbanCommunity.Domain.Enums;
@@ -9,9 +11,9 @@ using UrbanCommunity.Domain.Enums;
 namespace UrbanCommunity.Application.Features.Announcements.Queries.GetAnnouncements;
 
 public sealed class GetAnnouncementsQueryHandler(IApplicationDbContext context)
-    : IRequestHandler<GetAnnouncementsQuery, Result<IReadOnlyList<GetAnnouncementsQueryResponse>>>
+    : IRequestHandler<GetAnnouncementsQuery, Result<PagedResult<GetAnnouncementsQueryResponse>>>
 {
-    public async Task<Result<IReadOnlyList<GetAnnouncementsQueryResponse>>> Handle(
+    public async Task<Result<PagedResult<GetAnnouncementsQueryResponse>>> Handle(
         GetAnnouncementsQuery request,
         CancellationToken cancellationToken)
     {
@@ -19,10 +21,6 @@ public sealed class GetAnnouncementsQueryHandler(IApplicationDbContext context)
 
         var query = context.Announcements
             .AsNoTracking()
-            .Include(a => a.User)
-            .Include(a => a.Province)
-            .Include(a => a.District)
-            .Include(a => a.Neighborhood)
             .AsQueryable();
 
         query = query.Where(a => !a.ExpiresAt.HasValue || a.ExpiresAt.Value > now);
@@ -33,12 +31,13 @@ public sealed class GetAnnouncementsQueryHandler(IApplicationDbContext context)
 
         var announcements = await query
             .OrderByDescending(a => a.CreatedAt)
+            .ThenBy(a => a.Id)
             .Select(a => new GetAnnouncementsQueryResponse(
                 a.Id,
                 a.Title,
                 a.Content,
                 a.UserId,
-                a.User.GetUserFullName(),
+                UserProjections.FullName.Invoke(a.User),
                 a.Scope,
                 a.ProvinceId,
                 a.Province != null ? a.Province.Name : null,
@@ -50,9 +49,10 @@ public sealed class GetAnnouncementsQueryHandler(IApplicationDbContext context)
                 a.ExpiresAt,
                 a.CreatedAt,
                 a.UpdatedAt))
-            .ToListAsync(cancellationToken);
+            .Expand()
+            .ToPagedResultAsync(request.PageIndex, request.PageSize, cancellationToken);
 
-        return Result<IReadOnlyList<GetAnnouncementsQueryResponse>>.Success(announcements);
+        return Result<PagedResult<GetAnnouncementsQueryResponse>>.Success(announcements);
     }
 
     private static IQueryable<Announcement> BuildLocationFilter(

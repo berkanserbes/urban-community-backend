@@ -1,24 +1,22 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using UrbanCommunity.Application.Common.Extensions;
 using UrbanCommunity.Application.Common.Models;
+using UrbanCommunity.Application.Common.Projections;
 using UrbanCommunity.Application.Features.Announcements.Queries.GetAnnouncements;
 using UrbanCommunity.Application.Interfaces;
 
 namespace UrbanCommunity.Application.Features.Announcements.Queries.GetManageableAnnouncements;
 
 public sealed class GetManageableAnnouncementsQueryHandler(IApplicationDbContext context)
-    : IRequestHandler<GetManageableAnnouncementsQuery, Result<IReadOnlyList<GetAnnouncementsQueryResponse>>>
+    : IRequestHandler<GetManageableAnnouncementsQuery, Result<PagedResult<GetAnnouncementsQueryResponse>>>
 {
-    public async Task<Result<IReadOnlyList<GetAnnouncementsQueryResponse>>> Handle(
+    public async Task<Result<PagedResult<GetAnnouncementsQueryResponse>>> Handle(
         GetManageableAnnouncementsQuery request,
         CancellationToken cancellationToken)
     {
         var query = context.Announcements
             .AsNoTracking()
-            .Include(a => a.User)
-            .Include(a => a.Province)
-            .Include(a => a.District)
-            .Include(a => a.Neighborhood)
             .AsQueryable();
 
         if (!request.IsAdmin)
@@ -28,12 +26,13 @@ public sealed class GetManageableAnnouncementsQueryHandler(IApplicationDbContext
 
         var announcements = await query
             .OrderByDescending(a => a.CreatedAt)
+            .ThenBy(a => a.Id)
             .Select(a => new GetAnnouncementsQueryResponse(
                 a.Id,
                 a.Title,
                 a.Content,
                 a.UserId,
-                a.User.GetUserFullName(),
+                UserProjections.FullName.Invoke(a.User),
                 a.Scope,
                 a.ProvinceId,
                 a.Province != null ? a.Province.Name : null,
@@ -45,8 +44,9 @@ public sealed class GetManageableAnnouncementsQueryHandler(IApplicationDbContext
                 a.ExpiresAt,
                 a.CreatedAt,
                 a.UpdatedAt))
-            .ToListAsync(cancellationToken);
+            .Expand()
+            .ToPagedResultAsync(request.PageIndex, request.PageSize, cancellationToken);
 
-        return Result<IReadOnlyList<GetAnnouncementsQueryResponse>>.Success(announcements);
+        return Result<PagedResult<GetAnnouncementsQueryResponse>>.Success(announcements);
     }
 }

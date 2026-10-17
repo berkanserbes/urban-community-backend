@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using UrbanCommunity.Application.Common.Models;
 using UrbanCommunity.Application.Features.Announcements.Commands.ActivateAllAnnouncements;
 using UrbanCommunity.Application.Features.Announcements.Commands.ActivateAnnouncement;
 using UrbanCommunity.Application.Features.Announcements.Commands.CreateAnnouncement;
@@ -23,14 +24,22 @@ public class AnnouncementsController(IMediator mediator) : ApiController
 {
     [HttpGet]
     [AllowAnonymous]
+    [ProducesResponseType(typeof(Result<PagedResult<GetAnnouncementsQueryResponse>>), 200)]
     public async Task<IActionResult> GetAll(
+        [FromQuery] PaginationRequest pagination,
         [FromQuery] Guid? provinceId,
         [FromQuery] Guid? districtId,
         [FromQuery] Guid? neighborhoodId,
         [FromQuery] bool? isActive,
         CancellationToken cancellationToken)
     {
-        var result = await mediator.Send(new GetAnnouncementsQuery(provinceId, districtId, neighborhoodId, isActive), cancellationToken);
+        var result = await mediator.Send(
+            new GetAnnouncementsQuery(provinceId, districtId, neighborhoodId, isActive)
+            {
+                PageIndex = pagination.PageIndex,
+                PageSize = pagination.PageSize
+            },
+            cancellationToken);
         return Ok(result);
     }
 
@@ -44,10 +53,17 @@ public class AnnouncementsController(IMediator mediator) : ApiController
 
     [HttpGet("manageable")]
     [Authorize(Roles = "Admin,Official")]
-    public async Task<IActionResult> GetManageable(CancellationToken cancellationToken)
+    [ProducesResponseType(typeof(Result<PagedResult<GetAnnouncementsQueryResponse>>), 200)]
+    public async Task<IActionResult> GetManageable(
+        [FromQuery] PaginationRequest pagination,
+        CancellationToken cancellationToken)
     {
         var result = await mediator.Send(
-            new GetManageableAnnouncementsQuery(GetCurrentUserId(), User.IsInRole("Admin")),
+            new GetManageableAnnouncementsQuery(GetCurrentUserId(), User.IsInRole("Admin"))
+            {
+                PageIndex = pagination.PageIndex,
+                PageSize = pagination.PageSize
+            },
             cancellationToken);
         return Ok(result);
     }
