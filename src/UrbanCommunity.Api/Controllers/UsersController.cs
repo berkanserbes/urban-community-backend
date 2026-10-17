@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using UrbanCommunity.Api.Constants;
+using UrbanCommunity.Application.Common.Models;
 using UrbanCommunity.Application.Features.Users.Commands.ActivateUser;
 using UrbanCommunity.Application.Features.Users.Commands.AdminUpdateUser;
 using UrbanCommunity.Application.Features.Users.Commands.ChangePassword;
@@ -15,6 +16,7 @@ using UrbanCommunity.Application.Features.Users.Commands.RequiredPasswordChange;
 using UrbanCommunity.Application.Features.Users.Queries.GetCurrentUser;
 using UrbanCommunity.Application.Features.Users.Queries.GetUserById;
 using UrbanCommunity.Application.Features.Users.Queries.GetUsers;
+using UrbanCommunity.Application.Features.Users.Queries.GetUserStats;
 using UrbanCommunity.Application.Features.Users.Queries.GetUsersByProvince;
 using UrbanCommunity.Application.Features.Users.Queries.GetUsersByDistrict;
 using UrbanCommunity.Application.Features.Users.Queries.GetUsersByNeighborhood;
@@ -122,9 +124,31 @@ public class UsersController(IMediator mediator) : ApiController
     /// <summary>Returns all registered users. Restricted to Admin.</summary>
     [HttpGet]
     [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> GetAll()
+    [ProducesResponseType(typeof(Result<PagedResult<GetUsersQueryResponse>>), 200)]
+    public async Task<IActionResult> GetAll(
+        [FromQuery] PaginationRequest pagination,
+        [FromQuery] string? search,
+        [FromQuery] UserRole? role,
+        [FromQuery] bool? isActive,
+        CancellationToken cancellationToken)
     {
-        var result = await mediator.Send(new GetUsersQuery());
+        var result = await mediator.Send(
+            new GetUsersQuery(search, role, isActive)
+            {
+                PageIndex = pagination.PageIndex,
+                PageSize = pagination.PageSize
+            },
+            cancellationToken);
+        return Ok(result);
+    }
+
+    /// <summary>Returns user counts by role and active state. Restricted to Admin.</summary>
+    [HttpGet("stats")]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(typeof(Result<GetUserStatsQueryResponse>), 200)]
+    public async Task<IActionResult> GetStats(CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new GetUserStatsQuery(), cancellationToken);
         return Ok(result);
     }
 
@@ -139,27 +163,57 @@ public class UsersController(IMediator mediator) : ApiController
     /// <summary>Returns active users filtered by province. Restricted to Admin.</summary>
     [HttpGet("by-province/{provinceId:guid}")]
     [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> GetByProvince(Guid provinceId)
+    [ProducesResponseType(typeof(Result<PagedResult<GetUsersByProvinceQueryResponse>>), 200)]
+    public async Task<IActionResult> GetByProvince(
+        [FromQuery] PaginationRequest pagination,
+        Guid provinceId,
+        CancellationToken cancellationToken)
     {
-        var result = await mediator.Send(new GetUsersByProvinceQuery(provinceId));
+        var result = await mediator.Send(
+            new GetUsersByProvinceQuery(provinceId)
+            {
+                PageIndex = pagination.PageIndex,
+                PageSize = pagination.PageSize
+            },
+            cancellationToken);
         return Ok(result);
     }
 
     /// <summary>Returns active users filtered by district. Restricted to Admin.</summary>
     [HttpGet("by-district/{districtId:guid}")]
     [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> GetByDistrict(Guid districtId)
+    [ProducesResponseType(typeof(Result<PagedResult<GetUsersByDistrictQueryResponse>>), 200)]
+    public async Task<IActionResult> GetByDistrict(
+        [FromQuery] PaginationRequest pagination,
+        Guid districtId,
+        CancellationToken cancellationToken)
     {
-        var result = await mediator.Send(new GetUsersByDistrictQuery(districtId));
+        var result = await mediator.Send(
+            new GetUsersByDistrictQuery(districtId)
+            {
+                PageIndex = pagination.PageIndex,
+                PageSize = pagination.PageSize
+            },
+            cancellationToken);
         return Ok(result);
     }
 
     /// <summary>Returns active users filtered by neighborhood. Restricted to Admin.</summary>
     [HttpGet("by-neighborhood/{neighborhoodId:guid}")]
     [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> GetByNeighborhood(Guid neighborhoodId)
+    [ProducesResponseType(typeof(Result<PagedResult<GetUsersByNeighborhoodQueryResponse>>), 200)]
+    public async Task<IActionResult> GetByNeighborhood(
+        [FromQuery] PaginationRequest pagination,
+        Guid neighborhoodId,
+        CancellationToken cancellationToken)
     {
-        var result = await mediator.Send(new GetUsersByNeighborhoodQuery(neighborhoodId));
+        var result = await mediator.Send(
+            new GetUsersByNeighborhoodQuery(neighborhoodId)
+            {
+                PageIndex = pagination.PageIndex,
+                PageSize = pagination.PageSize
+            },
+            cancellationToken);
         return Ok(result);
     }
 

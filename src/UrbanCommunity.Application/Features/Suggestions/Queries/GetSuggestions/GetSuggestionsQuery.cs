@@ -10,4 +10,4 @@ public sealed record GetSuggestionsQuery(
     Guid? NeighborhoodId = null,
     Guid? DistrictId = null,
     Guid? ProvinceId = null,
-    Guid? RequestingUserId = null) : IRequest<Result<IReadOnlyList<GetSuggestionsQueryResponse>>>;
+    Guid? RequestingUserId = null) : PaginationRequest, IRequest<Result<PagedResult<GetSuggestionsQueryResponse>>>;

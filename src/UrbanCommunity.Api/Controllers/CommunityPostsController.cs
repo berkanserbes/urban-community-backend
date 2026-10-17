@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using UrbanCommunity.Api.Constants;
+using UrbanCommunity.Application.Common.Models;
 using UrbanCommunity.Application.Features.CommunityPosts.Commands.ChangeCommunityPostStatus;
 using UrbanCommunity.Application.Features.CommunityPosts.Commands.CreateCommunityPost;
 using UrbanCommunity.Application.Features.CommunityPosts.Commands.DeleteCommunityPost;
@@ -19,7 +20,9 @@ namespace UrbanCommunity.Api.Controllers;
 public class CommunityPostsController(IMediator mediator) : ApiController
 {
     [HttpGet]
+    [ProducesResponseType(typeof(Result<PagedResult<GetCommunityPostsQueryResponse>>), 200)]
     public async Task<IActionResult> GetAll(
+        [FromQuery] PaginationRequest pagination,
         [FromQuery] CommunityPostScope? scope,
         [FromQuery] Guid? provinceId,
         [FromQuery] Guid? districtId,
@@ -32,7 +35,11 @@ public class CommunityPostsController(IMediator mediator) : ApiController
         var requestingUserId = GetCurrentUserId();
         var isAdmin = User.IsInRole("Admin");
         var result = await mediator.Send(
-            new GetCommunityPostsQuery(requestingUserId, isAdmin, scope, provinceId, districtId, neighborhoodId, status, type, userId),
+            new GetCommunityPostsQuery(requestingUserId, isAdmin, scope, provinceId, districtId, neighborhoodId, status, type, userId)
+            {
+                PageIndex = pagination.PageIndex,
+                PageSize = pagination.PageSize
+            },
             cancellationToken);
 
         return Ok(result);

@@ -368,9 +368,9 @@ namespace UrbanCommunity.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CommunityPostId");
-
                     b.HasIndex("UserId");
+
+                    b.HasIndex("CommunityPostId", "CreatedAt");
 
                     b.ToTable("CommunityPostComments");
                 });
@@ -563,6 +563,8 @@ namespace UrbanCommunity.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("UserId", "CreatedAt");
 
                     b.HasIndex("UserId", "IsRead");
 
@@ -773,8 +775,6 @@ namespace UrbanCommunity.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AssignedOrganizationDepartmentId");
-
                     b.HasIndex("AssignmentNeedsReview");
 
                     b.HasIndex("CategoryId");
@@ -789,9 +789,13 @@ namespace UrbanCommunity.Infrastructure.Migrations
 
                     b.HasIndex("Status");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("AssignedOrganizationDepartmentId", "CreatedAt");
+
+                    b.HasIndex("NeighborhoodId", "CreatedAt");
 
                     b.HasIndex("NeighborhoodId", "Status");
+
+                    b.HasIndex("UserId", "CreatedAt");
 
                     b.ToTable("Reports", t =>
                         {
@@ -854,9 +858,9 @@ namespace UrbanCommunity.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ReportId");
-
                     b.HasIndex("UserId");
+
+                    b.HasIndex("ReportId", "CreatedAt");
 
                     b.ToTable("ReportComments");
                 });
@@ -1040,6 +1044,8 @@ namespace UrbanCommunity.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
+                    b.HasIndex("VoteScore", "CreatedAt");
+
                     b.ToTable("Suggestions");
                 });
 
@@ -1068,9 +1074,9 @@ namespace UrbanCommunity.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("SuggestionId");
-
                     b.HasIndex("UserId");
+
+                    b.HasIndex("SuggestionId", "CreatedAt");
 
                     b.ToTable("SuggestionComments");
                 });

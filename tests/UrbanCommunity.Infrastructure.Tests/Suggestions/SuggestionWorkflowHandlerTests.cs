@@ -223,8 +223,8 @@ public sealed class SuggestionWorkflowHandlerTests
         var result = await handler.Handle(new GetSuggestionsQuery(), CancellationToken.None);
 
         Assert.True(result.IsSuccess);
-        Assert.Single(result.Data!);
-        Assert.Equal("Official response", result.Data![0].OfficialResponse);
+        Assert.Single(result.Data!.Items);
+        Assert.Equal("Official response", result.Data!.Items[0].OfficialResponse);
     }
 
     private static ApplicationDbContext CreateContext()

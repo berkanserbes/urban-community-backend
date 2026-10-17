@@ -1,14 +1,15 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using UrbanCommunity.Application.Common.Extensions;
 using UrbanCommunity.Application.Common.Models;
 using UrbanCommunity.Application.Interfaces;
 
 namespace UrbanCommunity.Application.Features.Notifications.Queries.GetMyNotifications;
 
 public sealed class GetMyNotificationsQueryHandler(IApplicationDbContext context)
-    : IRequestHandler<GetMyNotificationsQuery, Result<IReadOnlyList<GetMyNotificationsQueryResponse>>>
+    : IRequestHandler<GetMyNotificationsQuery, Result<PagedResult<GetMyNotificationsQueryResponse>>>
 {
-    public async Task<Result<IReadOnlyList<GetMyNotificationsQueryResponse>>> Handle(GetMyNotificationsQuery request, CancellationToken cancellationToken)
+    public async Task<Result<PagedResult<GetMyNotificationsQueryResponse>>> Handle(GetMyNotificationsQuery request, CancellationToken cancellationToken)
     {
         var query = context.Notifications
             .AsNoTracking()
@@ -28,8 +29,8 @@ public sealed class GetMyNotificationsQueryHandler(IApplicationDbContext context
                 n.RelatedEntityId,
                 n.RelatedEntityType.HasValue ? n.RelatedEntityType.Value.ToString() : null,
                 n.CreatedAt))
-            .ToListAsync(cancellationToken);
+            .ToPagedResultAsync(request.PageIndex, request.PageSize, cancellationToken);
 
-        return Result<IReadOnlyList<GetMyNotificationsQueryResponse>>.Success(notifications);
+        return Result<PagedResult<GetMyNotificationsQueryResponse>>.Success(notifications);
     }
 }

@@ -31,5 +31,8 @@ public class NotificationConfiguration : BaseEntityConfiguration<Notification>
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasIndex(n => new { n.UserId, n.IsRead });
+
+        // Bildirim listesi kullanıcıya göre CreatedAt sırasıyla sayfalanır
+        builder.HasIndex(n => new { n.UserId, n.CreatedAt });
     }
 }

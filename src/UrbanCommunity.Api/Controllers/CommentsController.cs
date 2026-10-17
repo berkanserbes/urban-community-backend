@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using UrbanCommunity.Application.Common.Models;
 using UrbanCommunity.Application.Features.Comments.Commands.CommunityPostComment.AddCommunityPostComment;
 using UrbanCommunity.Application.Features.Comments.Commands.CommunityPostComment.DeleteCommunityPostComment;
 using UrbanCommunity.Application.Features.Comments.Commands.CommunityPostComment.UpdateCommunityPostComment;
@@ -25,9 +26,19 @@ namespace UrbanCommunity.Api.Controllers;
 public class CommentsController(IMediator mediator) : ApiController
 {
     [HttpGet("reports/{reportId:guid}/comments")]
-    public async Task<IActionResult> GetReportComments(Guid reportId, CancellationToken cancellationToken)
+    [ProducesResponseType(typeof(Result<PagedResult<GetReportCommentsQueryResponse>>), 200)]
+    public async Task<IActionResult> GetReportComments(
+        [FromQuery] PaginationRequest pagination,
+        Guid reportId,
+        CancellationToken cancellationToken)
     {
-        var result = await mediator.Send(new GetReportCommentsQuery(reportId), cancellationToken);
+        var result = await mediator.Send(
+            new GetReportCommentsQuery(reportId)
+            {
+                PageIndex = pagination.PageIndex,
+                PageSize = pagination.PageSize
+            },
+            cancellationToken);
         return Ok(result);
     }
 
@@ -70,9 +81,19 @@ public class CommentsController(IMediator mediator) : ApiController
     }
 
     [HttpGet("suggestions/{suggestionId:guid}/comments")]
-    public async Task<IActionResult> GetSuggestionComments(Guid suggestionId, CancellationToken cancellationToken)
+    [ProducesResponseType(typeof(Result<PagedResult<GetSuggestionCommentsQueryResponse>>), 200)]
+    public async Task<IActionResult> GetSuggestionComments(
+        [FromQuery] PaginationRequest pagination,
+        Guid suggestionId,
+        CancellationToken cancellationToken)
     {
-        var result = await mediator.Send(new GetSuggestionCommentsQuery(suggestionId), cancellationToken);
+        var result = await mediator.Send(
+            new GetSuggestionCommentsQuery(suggestionId)
+            {
+                PageIndex = pagination.PageIndex,
+                PageSize = pagination.PageSize
+            },
+            cancellationToken);
         return Ok(result);
     }
 
@@ -115,11 +136,21 @@ public class CommentsController(IMediator mediator) : ApiController
     }
 
     [HttpGet("community-posts/{communityPostId:guid}/comments")]
-    public async Task<IActionResult> GetCommunityPostComments(Guid communityPostId, CancellationToken cancellationToken)
+    [ProducesResponseType(typeof(Result<PagedResult<GetCommunityPostCommentsQueryResponse>>), 200)]
+    public async Task<IActionResult> GetCommunityPostComments(
+        [FromQuery] PaginationRequest pagination,
+        Guid communityPostId,
+        CancellationToken cancellationToken)
     {
         var requestingUserId = GetCurrentUserId();
         var isAdmin = User.IsInRole("Admin");
-        var result = await mediator.Send(new GetCommunityPostCommentsQuery(communityPostId, requestingUserId, isAdmin), cancellationToken);
+        var result = await mediator.Send(
+            new GetCommunityPostCommentsQuery(communityPostId, requestingUserId, isAdmin)
+            {
+                PageIndex = pagination.PageIndex,
+                PageSize = pagination.PageSize
+            },
+            cancellationToken);
         return Ok(result);
     }
 

@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using UrbanCommunity.Application.Common.Exceptions;
+using UrbanCommunity.Application.Common.Extensions;
 using UrbanCommunity.Application.Common.Models;
 using UrbanCommunity.Application.Interfaces;
 using UrbanCommunity.Domain.Entities;
@@ -8,9 +9,9 @@ using UrbanCommunity.Domain.Entities;
 namespace UrbanCommunity.Application.Features.Users.Queries.GetUsersByProvince;
 
 public sealed class GetUsersByProvinceQueryHandler(IApplicationDbContext context)
-    : IRequestHandler<GetUsersByProvinceQuery, Result<IReadOnlyList<GetUsersByProvinceQueryResponse>>>
+    : IRequestHandler<GetUsersByProvinceQuery, Result<PagedResult<GetUsersByProvinceQueryResponse>>>
 {
-    public async Task<Result<IReadOnlyList<GetUsersByProvinceQueryResponse>>> Handle(
+    public async Task<Result<PagedResult<GetUsersByProvinceQueryResponse>>> Handle(
         GetUsersByProvinceQuery request,
         CancellationToken cancellationToken)
     {
@@ -29,6 +30,7 @@ public sealed class GetUsersByProvinceQueryHandler(IApplicationDbContext context
                         && u.IsActive)
             .OrderBy(u => u.FirstName)
             .ThenBy(u => u.LastName)
+            .ThenBy(u => u.Id)
             .Select(u => new GetUsersByProvinceQueryResponse(
                 u.Id,
                 u.FirstName,
@@ -62,8 +64,8 @@ public sealed class GetUsersByProvinceQueryHandler(IApplicationDbContext context
                         : u.OfficialJurisdictionLevel == Domain.Enums.OfficialJurisdictionLevel.Neighborhood
                             ? u.OfficialNeighborhood != null ? u.OfficialNeighborhood.Name : null
                             : null))
-            .ToListAsync(cancellationToken);
+            .ToPagedResultAsync(request.PageIndex, request.PageSize, cancellationToken);
 
-        return Result<IReadOnlyList<GetUsersByProvinceQueryResponse>>.Success(users);
+        return Result<PagedResult<GetUsersByProvinceQueryResponse>>.Success(users);
     }
 }

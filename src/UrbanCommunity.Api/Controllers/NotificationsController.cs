@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using UrbanCommunity.Application.Common.Models;
 using UrbanCommunity.Application.Features.Notifications.Commands.DeleteAllNotifications;
 using UrbanCommunity.Application.Features.Notifications.Commands.DeleteNotification;
 using UrbanCommunity.Application.Features.Notifications.Commands.MarkAllAsRead;
@@ -18,12 +19,20 @@ namespace UrbanCommunity.Api.Controllers;
 public class NotificationsController(IMediator mediator) : ApiController
 {
     [HttpGet]
+    [ProducesResponseType(typeof(Result<PagedResult<GetMyNotificationsQueryResponse>>), 200)]
     public async Task<IActionResult> GetMyNotifications(
+        [FromQuery] PaginationRequest pagination,
         [FromQuery] bool? isRead,
         CancellationToken cancellationToken)
     {
         var userId = GetCurrentUserId();
-        var result = await mediator.Send(new GetMyNotificationsQuery(userId, isRead), cancellationToken);
+        var result = await mediator.Send(
+            new GetMyNotificationsQuery(userId, isRead)
+            {
+                PageIndex = pagination.PageIndex,
+                PageSize = pagination.PageSize
+            },
+            cancellationToken);
         return Ok(result);
     }
 

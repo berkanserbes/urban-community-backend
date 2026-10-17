@@ -1,16 +1,18 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using UrbanCommunity.Application.Common.Exceptions;
+using UrbanCommunity.Application.Common.Extensions;
 using UrbanCommunity.Application.Common.Models;
+using UrbanCommunity.Application.Common.Projections;
 using UrbanCommunity.Application.Interfaces;
 using UrbanCommunity.Domain.Entities;
 
 namespace UrbanCommunity.Application.Features.Comments.Queries.ReportComment.GetReportComments;
 
 public sealed class GetReportCommentsQueryHandler(IApplicationDbContext context)
-    : IRequestHandler<GetReportCommentsQuery, Result<IReadOnlyList<GetReportCommentsQueryResponse>>>
+    : IRequestHandler<GetReportCommentsQuery, Result<PagedResult<GetReportCommentsQueryResponse>>>
 {
-    public async Task<Result<IReadOnlyList<GetReportCommentsQueryResponse>>> Handle(GetReportCommentsQuery request, CancellationToken cancellationToken)
+    public async Task<Result<PagedResult<GetReportCommentsQueryResponse>>> Handle(GetReportCommentsQuery request, CancellationToken cancellationToken)
     {
         if (!await context.Reports.AsNoTracking().AnyAsync(report => report.Id == request.ReportId, cancellationToken))
         {
@@ -20,20 +22,19 @@ public sealed class GetReportCommentsQueryHandler(IApplicationDbContext context)
         var comments = await context.ReportComments
             .AsNoTracking()
             .Where(comment => comment.ReportId == request.ReportId)
-            .Include(comment => comment.User)
             .OrderBy(comment => comment.CreatedAt)
-            .ToListAsync(cancellationToken);
-
-        IReadOnlyList<GetReportCommentsQueryResponse> result = comments
+            .ThenBy(comment => comment.Id)
             .Select(comment => new GetReportCommentsQueryResponse(
                 comment.Id,
                 comment.UserId,
-                comment.User?.FullName ?? "Silinmiş Kullanıcı",
+                comment.User == null ? "Silinmiş Kullanıcı"
+                    : UserProjections.FullName.Invoke(comment.User),
                 comment.Content,
                 comment.CreatedAt,
                 comment.UpdatedAt))
-            .ToList();
+            .Expand()
+            .ToPagedResultAsync(request.PageIndex, request.PageSize, cancellationToken);
 
-        return Result<IReadOnlyList<GetReportCommentsQueryResponse>>.Success(result);
+        return Result<PagedResult<GetReportCommentsQueryResponse>>.Success(comments);
     }
 }

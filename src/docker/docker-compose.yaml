@@ -91,6 +91,10 @@ services:
       - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
       - AI_SERVICE_BASE_URL=http://urban-community-ai:8000/
       - AI_API_KEY=${AI_API_KEY}
+      - DEV_ADMIN_EMAIL=${DEV_ADMIN_EMAIL:-}
+      - DEV_ADMIN_PASSWORD=${DEV_ADMIN_PASSWORD:-}
+      - DEV_ADMIN_FIRST_NAME=${DEV_ADMIN_FIRST_NAME:-}
+      - DEV_ADMIN_LAST_NAME=${DEV_ADMIN_LAST_NAME:-}
     ports:
       - "${API_PORT:-5000}:8080"
     volumes:

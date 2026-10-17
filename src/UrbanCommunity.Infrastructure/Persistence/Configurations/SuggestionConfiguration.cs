@@ -30,5 +30,8 @@ public class SuggestionConfiguration : BaseEntityConfiguration<Suggestion>
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(s => s.Status);
+
+        // Öneri listesi VoteScore, ardından CreatedAt sırasıyla sayfalanır
+        builder.HasIndex(s => new { s.VoteScore, s.CreatedAt });
     }
 }

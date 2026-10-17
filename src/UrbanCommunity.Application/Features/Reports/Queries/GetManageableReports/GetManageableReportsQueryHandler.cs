@@ -1,6 +1,8 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using UrbanCommunity.Application.Common.Extensions;
 using UrbanCommunity.Application.Common.Models;
+using UrbanCommunity.Application.Common.Projections;
 using UrbanCommunity.Application.Features.Reports.Queries.GetReports;
 using UrbanCommunity.Application.Interfaces;
 using UrbanCommunity.Domain.Enums;
@@ -10,9 +12,9 @@ namespace UrbanCommunity.Application.Features.Reports.Queries.GetManageableRepor
 public sealed class GetManageableReportsQueryHandler(
     IApplicationDbContext context,
     IReportManagementAuthorizationService authorizationService)
-    : IRequestHandler<GetManageableReportsQuery, Result<IReadOnlyList<GetReportsQueryResponse>>>
+    : IRequestHandler<GetManageableReportsQuery, Result<PagedResult<GetReportsQueryResponse>>>
 {
-    public async Task<Result<IReadOnlyList<GetReportsQueryResponse>>> Handle(
+    public async Task<Result<PagedResult<GetReportsQueryResponse>>> Handle(
         GetManageableReportsQuery request,
         CancellationToken cancellationToken)
     {
@@ -39,8 +41,26 @@ public sealed class GetManageableReportsQueryHandler(
                 report.AssignedOrganizationDepartmentId ==
                 request.AssignedOrganizationDepartmentId.Value);
 
+        if (request.Priority.HasValue)
+            query = query.Where(report => report.Priority == request.Priority.Value);
+
+        if (request.Assignment == ReportAssignmentFilter.Unassigned)
+            query = query.Where(report => report.AssignedOrganizationDepartmentId == null);
+        else if (request.Assignment == ReportAssignmentFilter.NeedsReview)
+            query = query.Where(report => report.AssignmentNeedsReview);
+
+        if (!string.IsNullOrWhiteSpace(request.Search))
+        {
+            var search = request.Search.Trim().ToLower();
+            query = query.Where(report =>
+                report.Title.ToLower().Contains(search) ||
+                report.Category.Name.ToLower().Contains(search) ||
+                report.Neighborhood.Name.ToLower().Contains(search));
+        }
+
         var reports = await query
             .OrderByDescending(report => report.CreatedAt)
+            .ThenBy(report => report.Id)
             .Select(report => new GetReportsQueryResponse(
                 report.Id,
                 report.Title,
@@ -50,7 +70,7 @@ public sealed class GetManageableReportsQueryHandler(
                 report.Location != null ? report.Location.Y : null,
                 report.Location != null ? report.Location.X : null,
                 report.UserId,
-                report.User.FirstName + " " + report.User.LastName,
+                UserProjections.FullName.Invoke(report.User),
                 report.CategoryId,
                 report.Category.Name,
                 report.NeighborhoodId,
@@ -88,8 +108,9 @@ public sealed class GetManageableReportsQueryHandler(
                     .OrderBy(m => m.DisplayOrder)
                     .Select(m => m.ThumbnailUrl ?? m.Url)
                     .FirstOrDefault()))
-            .ToListAsync(cancellationToken);
+            .Expand()
+            .ToPagedResultAsync(request.PageIndex, request.PageSize, cancellationToken);
 
-        return Result<IReadOnlyList<GetReportsQueryResponse>>.Success(reports);
+        return Result<PagedResult<GetReportsQueryResponse>>.Success(reports);
     }
 }

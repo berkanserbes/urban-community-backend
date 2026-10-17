@@ -21,11 +21,15 @@ Uygulama DbSet'leri:
 | `Provinces` | `Provinces` | Il bilgileri |
 | `Districts` | `Districts` | Ilce bilgileri |
 | `Neighborhoods` | `Neighborhoods` | Mahalle bilgileri ve opsiyonel polygon verisi |
-| `Departments` | `Departments` | Belediye/kurum birimleri |
+| `Departments` | `Departments` | Global hizmet turleri |
+| `Organizations` | `Organizations` | Il veya ilce seviyesindeki kamu kurumlari |
+| `OrganizationDepartments` | `OrganizationDepartments` | Kurumlardaki yerel hizmet birimleri ve iletisim bilgileri |
+| `OrganizationDepartmentCategories` | `OrganizationDepartmentCategories` | Yerel birim-kategori yonlendirme eslemeleri |
 | `ReportCategories` | `ReportCategories` | Rapor kategori bilgileri |
 | `Reports` | `Reports` | Vatandas sorun raporlari |
 | `ReportMedias` | `ReportMedias` | Rapor medya dosyalari |
 | `ReportHistories` | `ReportHistories` | Rapor durum gecmisleri |
+| `ReportSimilarityMatches` | `ReportSimilarityMatches` | Raporlar arasindaki kalici benzerlik eslesmeleri |
 | `ReportComments` | `ReportComments` | Rapor yorumlari |
 | `Suggestions` | `Suggestions` | Vatandas onerileri |
 | `Votes` | `Votes` | Oneri oylari |
@@ -36,6 +40,7 @@ Uygulama DbSet'leri:
 | `Announcements` | `Announcements` | Admin/official duyurulari |
 | `Notifications` | `Notifications` | Kullanici bildirimleri |
 | `UserRefreshTokens` | `UserRefreshTokens` | Refresh token kayitlari |
+| `AuditLogs` | `AuditLogs` | Kurum, Official erisimi ve rapor atama degisiklikleri |
 
 Identity tarafinda ayrica `AspNetRoles`, `AspNetUserRoles`, `AspNetUserClaims`, `AspNetRoleClaims`, `AspNetUserLogins`, `AspNetUserTokens` tablolari olusur.
 
@@ -75,10 +80,15 @@ erDiagram
         string LastName
         int Role
         uuid NeighborhoodId FK
-        uuid DepartmentId FK
+        uuid OrganizationDepartmentId FK
+        int OfficialJurisdictionLevel
+        uuid OfficialProvinceId FK
+        uuid OfficialDistrictId FK
+        uuid OfficialNeighborhoodId FK
         string ProfileImageUrl
         string Bio
         bool IsActive
+        bool MustChangePassword
         timestamp CreatedAt
         timestamp UpdatedAt
     }
@@ -87,10 +97,37 @@ erDiagram
         uuid Id PK
         string Name
         string Description
-        string ContactEmail
-        string ContactPhone
         timestamp CreatedAt
         timestamp UpdatedAt
+    }
+
+    ORGANIZATIONS {
+        uuid Id PK
+        string Name
+        int JurisdictionLevel
+        uuid ProvinceId FK
+        uuid DistrictId FK
+        uuid NeighborhoodId FK
+        bool IsActive
+        timestamp CreatedAt
+        timestamp UpdatedAt
+    }
+
+    ORGANIZATION_DEPARTMENTS {
+        uuid Id PK
+        uuid OrganizationId FK
+        uuid DepartmentId FK
+        string DisplayName
+        string ContactEmail
+        string ContactPhone
+        bool IsActive
+        timestamp CreatedAt
+        timestamp UpdatedAt
+    }
+
+    ORGANIZATION_DEPARTMENT_CATEGORIES {
+        uuid OrganizationDepartmentId PK,FK
+        uuid ReportCategoryId PK,FK
     }
 
     REPORT_CATEGORIES {
@@ -109,14 +146,26 @@ erDiagram
         geometry Location
         int Status
         int Priority
-        string SimilarityHash
+        string ContentHash
         timestamp ResolvedAt
         uuid UserId FK
         uuid CategoryId FK
         uuid NeighborhoodId FK
-        uuid AssignedDepartmentId FK
+        uuid AssignedOrganizationDepartmentId FK
+        bool AssignmentNeedsReview
         timestamp CreatedAt
         timestamp UpdatedAt
+    }
+
+    AUDIT_LOGS {
+        uuid Id PK
+        uuid ActorUserId
+        string Action
+        string EntityType
+        string EntityId
+        json OldValues
+        json NewValues
+        timestamp CreatedAt
     }
 
     REPORT_MEDIAS {
@@ -140,6 +189,16 @@ erDiagram
         int ToStatus
         string Note
         uuid ChangedByUserId FK
+        timestamp CreatedAt
+        timestamp UpdatedAt
+    }
+
+    REPORT_SIMILARITY_MATCHES {
+        uuid Id PK
+        uuid ReportId FK
+        uuid SimilarReportId FK
+        double SimilarityScore
+        string Reasoning
         timestamp CreatedAt
         timestamp UpdatedAt
     }
@@ -264,14 +323,24 @@ erDiagram
     PROVINCES ||--o{ DISTRICTS : contains
     DISTRICTS ||--o{ NEIGHBORHOODS : contains
     NEIGHBORHOODS ||--o{ ASP_NET_USERS : residents
-    DEPARTMENTS ||--o{ ASP_NET_USERS : officials
+    PROVINCES ||--o{ ORGANIZATIONS : contains
+    DISTRICTS ||--o{ ORGANIZATIONS : contains
+    NEIGHBORHOODS ||--o{ ORGANIZATIONS : contains
+    ORGANIZATIONS ||--o{ ORGANIZATION_DEPARTMENTS : owns
+    DEPARTMENTS ||--o{ ORGANIZATION_DEPARTMENTS : defines
+    ORGANIZATION_DEPARTMENTS ||--o{ ASP_NET_USERS : officials
+    PROVINCES ||--o{ ASP_NET_USERS : province_authority
+    DISTRICTS ||--o{ ASP_NET_USERS : district_authority
+    NEIGHBORHOODS ||--o{ ASP_NET_USERS : neighborhood_authority
 
     ASP_NET_USERS ||--o{ REPORTS : creates
     REPORT_CATEGORIES ||--o{ REPORTS : categorizes
     NEIGHBORHOODS ||--o{ REPORTS : locates
-    DEPARTMENTS ||--o{ REPORTS : handles
+    ORGANIZATION_DEPARTMENTS ||--o{ REPORTS : handles
     REPORTS ||--o{ REPORT_MEDIAS : contains
     REPORTS ||--o{ REPORT_HISTORIES : tracks
+    REPORTS ||--o{ REPORT_SIMILARITY_MATCHES : analyzed_report
+    REPORTS ||--o{ REPORT_SIMILARITY_MATCHES : referenced_similar_report
     ASP_NET_USERS ||--o{ REPORT_HISTORIES : changes
     REPORTS ||--o{ REPORT_COMMENTS : has
     ASP_NET_USERS ||--o{ REPORT_COMMENTS : writes
@@ -353,8 +422,15 @@ Mahalle tablosudur. Hem eski metinsel `City/District` alanlarini hem de yeni hiy
 | `Name` | `string(100)` | Evet | Mahalle adi |
 | `District` | `string(100)` | Evet | Eski/metinsel ilce adi |
 | `City` | `string(50)` | Evet | Eski/metinsel il adi |
-| `DistrictId` | `Guid?` | Hayir | FK -> `Districts.Id` |
-| `PolygonData` | `geometry?` | Hayir | PostGIS mahalle siniri |
+| `DistrictId` | `Guid` | Evet | FK -> `Districts.Id` |
+| `PolygonData` | `geometry?` | Hayir | Opsiyonel PostGIS mahalle siniri; MVP surumunde seed kayitlarinda null olabilir |
+
+Konum karari:
+- `Neighborhood.PolygonData` gelecekte koordinattan otomatik mahalle bulma ve sinir dogrulama icin ayrilmistir.
+- Mevcut MVP'de mahalle sinirlari seed edilmez; `PolygonData = null` gecerli bir durumdur.
+- Raporun zorunlu idari konumu `NeighborhoodId`, opsiyonel kesin sorun noktasi ise WGS84 (`SRID 4326`) `Report.Location` alaniyla tutulur.
+- Mobil istemci kesin konum paylasilacaksa `Latitude` ve `Longitude` degerlerini birlikte gonderir; yalnizca mahalle/adres ile bildirim yapilacaksa ikisini de bos birakir.
+- Poligon verisi bulunmadigi icin backend bu asamada koordinatin secilen mahalle sinirlari icinde oldugunu kontrol etmez.
 
 Iliskiler:
 - `Neighborhood N - 1 District`
@@ -382,22 +458,37 @@ Identity kullanici tablosudur. Domain `User` sinifi bu tabloyu genisletir.
 | `PasswordHash` | `string?` | Hayir | Identity password hash |
 | `Role` | `UserRole` | Evet | `Citizen`, `Official`, `Admin` |
 | `NeighborhoodId` | `Guid?` | Hayir | FK -> `Neighborhoods.Id` |
-| `DepartmentId` | `Guid?` | Hayir | FK -> `Departments.Id` |
+| `OrganizationDepartmentId` | `Guid?` | Hayir | FK -> `OrganizationDepartments.Id`; Official kullanicinin yerel birimi |
+| `OfficialJurisdictionLevel` | `OfficialJurisdictionLevel?` | Hayir | Official yetki alaninin idari seviyesi |
+| `OfficialProvinceId` | `Guid?` | Hayir | FK -> `Provinces.Id`; il kapsamli Official |
+| `OfficialDistrictId` | `Guid?` | Hayir | FK -> `Districts.Id`; ilce kapsamli Official |
+| `OfficialNeighborhoodId` | `Guid?` | Hayir | FK -> `Neighborhoods.Id`; mahalle kapsamli Official |
 | `ProfileImageUrl` | `string(500)?` | Hayir | Profil gorseli |
 | `Bio` | `string(300)?` | Hayir | Profil aciklamasi |
 | `IsActive` | `bool` | Evet | Default `true` |
+| `MustChangePassword` | `bool` | Evet | Gecici sifreyle olusturulan Official icin `true` |
 | `CreatedAt` | `DateTime` | Evet | Kayit zamani |
 | `UpdatedAt` | `DateTime?` | Hayir | Son guncelleme |
 
 Kurallar:
-- `DepartmentId` yalnizca `Official` rolu icin anlamlidir.
-- `CK_AspNetUsers_Department_Only_For_Officials` check constraint'i, department atamasini role gore korur.
+- `NeighborhoodId` kullanicinin ikamet ettigi mahalledir ve resmi yetki alanindan bagimsizdir.
+- Yeni Official kullanici icin `OrganizationDepartmentId`, `OfficialJurisdictionLevel` ve seviyeye
+  karsilik gelen tek bir konum FK'si zorunludur.
+- Province seviyesinde yalniz `OfficialProvinceId`, District seviyesinde yalniz
+  `OfficialDistrictId`, Neighborhood seviyesinde yalniz `OfficialNeighborhoodId`
+  dolu olabilir.
+- Citizen ve Admin icin tum Official yetki alanlari ile departman baglantilari null olmalidir.
+- `CK_AspNetUsers_OfficialAccess` check constraint'i bu kurallari veritabani
+  seviyesinde korur.
 
 Indexler:
 - `Role`
 - `IsActive`
-- `DepartmentId`
+- `OrganizationDepartmentId`
 - `NeighborhoodId`
+- `OfficialJurisdictionLevel + OfficialProvinceId`
+- `OfficialJurisdictionLevel + OfficialDistrictId`
+- `OfficialJurisdictionLevel + OfficialNeighborhoodId`
 
 ### UserRefreshTokens
 
@@ -422,22 +513,59 @@ Iliskiler:
 
 ### Departments
 
-Kurum/belediye birimlerini tutar.
+`Fen Isleri` ve `Temizlik Isleri` gibi global hizmet turlerini tutar.
 
 | Alan | Tip | Zorunlu | Aciklama |
 | --- | --- | --- | --- |
 | `Id` | `Guid` | Evet | PK |
 | `Name` | `string(150)` | Evet | Birim adi |
 | `Description` | `string(500)?` | Hayir | Aciklama |
-| `ContactEmail` | `string(100)?` | Hayir | Iletisim email |
-| `ContactPhone` | `string(20)?` | Hayir | Iletisim telefonu |
-
 Iliskiler:
-- `Department 1 - N User`
-- `Department 1 - N Report`
+- `Department 1 - N OrganizationDepartment`
 
 Indexler:
 - Unique: `Name`
+
+### Organizations
+
+Il veya ilce seviyesinde hizmet veren belediye/kamu kurumlarini tutar.
+
+| Alan | Tip | Zorunlu | Aciklama |
+| --- | --- | --- | --- |
+| `Id` | `Guid` | Evet | PK |
+| `Name` | `string(200)` | Evet | Kurum adi |
+| `JurisdictionLevel` | `OrganizationJurisdictionLevel` | Evet | `Province`, `District` veya `Neighborhood` |
+| `ProvinceId` | `Guid` | Evet | FK -> `Provinces.Id` |
+| `DistrictId` | `Guid?` | Hayir | District ve Neighborhood seviyesinde FK -> `Districts.Id` |
+| `NeighborhoodId` | `Guid?` | Hayir | Neighborhood seviyesinde FK -> `Neighborhoods.Id` |
+| `IsActive` | `bool` | Evet | Default `true` |
+
+Kurallar:
+- Province seviyesinde yalniz `ProvinceId` doludur.
+- District seviyesinde `ProvinceId` ve `DistrictId` doludur.
+- Neighborhood seviyesinde `ProvinceId`, `DistrictId` ve `NeighborhoodId` doludur.
+- Rapor atamasinda en spesifik aktif kurum tercih edilir: Neighborhood, District, Province.
+
+### OrganizationDepartments
+
+Global bir hizmet turunun belirli bir kurumdaki yerel karsiligidir.
+
+| Alan | Tip | Zorunlu | Aciklama |
+| --- | --- | --- | --- |
+| `Id` | `Guid` | Evet | PK |
+| `OrganizationId` | `Guid` | Evet | FK -> `Organizations.Id` |
+| `DepartmentId` | `Guid` | Evet | FK -> `Departments.Id` |
+| `DisplayName` | `string(150)?` | Hayir | Kurumdaki gorunen birim adi |
+| `ContactEmail` | `string(100)?` | Hayir | Yerel iletisim e-postasi |
+| `ContactPhone` | `string(20)?` | Hayir | Yerel iletisim telefonu |
+| `IsActive` | `bool` | Evet | Default `true` |
+
+Unique index: `OrganizationId + DepartmentId`.
+
+### OrganizationDepartmentCategories
+
+Yerel birimlerin sorumlu oldugu rapor kategorilerini tutan bilesik anahtarli
+esleme tablosudur.
 
 ## Raporlama Modulu
 
@@ -465,32 +593,44 @@ Vatandas tarafindan olusturulan sorun raporlarini tutar.
 | `Title` | `string(150)` | Evet | Baslik |
 | `Description` | `string(1000)` | Evet | Aciklama |
 | `Location` | `geometry(Point)` | Evet | PostGIS nokta konumu |
-| `Status` | `ReportStatus` | Evet | Default `Pending` |
+| `Status` | `ReportStatus` | Evet | Default `AiReview` |
 | `Priority` | `ReportPriority` | Evet | Default `Medium` |
-| `SimilarityHash` | `string(256)?` | Hayir | AI/mukerrer kontrol hash'i |
+| `ContentHash` | `string(256)?` | Hayir | Normalize baslik ve aciklamanin SHA-256 ozeti; birebir tekrar tespiti |
 | `ResolvedAt` | `DateTime?` | Hayir | Cozulme zamani |
 | `UserId` | `Guid` | Evet | FK -> `AspNetUsers.Id` |
 | `CategoryId` | `Guid` | Evet | FK -> `ReportCategories.Id` |
 | `NeighborhoodId` | `Guid` | Evet | FK -> `Neighborhoods.Id` |
-| `AssignedDepartmentId` | `Guid?` | Hayir | FK -> `Departments.Id` |
+| `AssignedOrganizationDepartmentId` | `Guid?` | Hayir | FK -> `OrganizationDepartments.Id` |
+| `AssignmentNeedsReview` | `bool` | Evet | Atama konum/kategori degisimi sonrasi yeniden incelenmeli |
 
 Iliskiler:
 - `Report N - 1 User`
 - `Report N - 1 ReportCategory`
 - `Report N - 1 Neighborhood`
-- `Report N - 1 Department`
+- `Report N - 1 OrganizationDepartment`
 - `Report 1 - N ReportMedia`
 - `Report 1 - N ReportHistory`
+- `Report 1 - N ReportSimilarityMatch` (`ReportId`, analiz edilen rapor)
+- `Report 1 - N ReportSimilarityMatch` (`SimilarReportId`, benzer bulunan rapor)
 - `Report 1 - N ReportComment`
 
 Check constraint:
-- `CK_Reports_ResolvedAt_Required_When_Resolved`: status `Resolved` ise `ResolvedAt` dolu olmalidir.
+- `CK_Reports_ResolvedAt_Matches_Status`: status `Resolved` ise `ResolvedAt` dolu, diger statuslerde null olmalidir.
 
 Indexler:
 - `Status`
 - `Priority`
 - `NeighborhoodId + Status`
+- `ContentHash`
+- `AssignmentNeedsReview`
+- `NeighborhoodId + CreatedAt` (mahalle/konum listeleri)
+- `UserId + CreatedAt` (`/api/reports/mine`)
+- `AssignedOrganizationDepartmentId + CreatedAt` (Official yonetim listesi)
 - Spatial index: `Location`
+
+Sayfali rapor listeleri `CreatedAt` azalan sirayla gelir. `+ CreatedAt` indexleri bu siralamayi
+filtrelenmis kayitlar icin index uzerinden saglar; ayni kolonla baslayan tekil FK indexlerinin
+yerini alir.
 
 ### ReportMedias
 
@@ -534,6 +674,38 @@ Check constraint:
 Indexler:
 - `ReportId + CreatedAt`
 
+### ReportSimilarityMatches
+
+Bir rapor icin bulunan benzer raporlari, benzerlik skorunu ve aciklanabilir
+gerekceyi kalici olarak tutar.
+
+| Alan | Tip | Zorunlu | Aciklama |
+| --- | --- | --- | --- |
+| `Id` | `Guid` | Evet | PK |
+| `ReportId` | `Guid` | Evet | FK -> `Reports.Id`; analiz edilen/yeni rapor |
+| `SimilarReportId` | `Guid` | Evet | FK -> `Reports.Id`; benzer bulunan mevcut rapor |
+| `SimilarityScore` | `double` | Evet | `0.0-1.0` arasi benzerlik skoru |
+| `Reasoning` | `string(500)` | Evet | Eslesmenin kisa gerekcesi |
+
+Navigation yonleri:
+
+- `Report.SimilarReportMatches`: Bu rapor analiz edilirken bulunan eslesmeler.
+- `Report.ReferencedAsSimilarMatches`: Bu raporu benzer rapor olarak referanslayan eslesmeler.
+
+Check constraint'ler:
+
+- `CK_ReportSimilarityMatches_DifferentReports`: Bir rapor kendisiyle eslesemez.
+- `CK_ReportSimilarityMatches_Score_Range`: Skor `0.0-1.0` araliginda olmalidir.
+
+Indexler:
+
+- Unique: `ReportId + SimilarReportId`
+- `SimilarReportId`
+
+Silme davranisi:
+
+- Eslesmenin herhangi bir tarafindaki rapor silinirse ilgili eslesme kaydi cascade silinir.
+
 ### ReportComments
 
 Rapor yorumlarini tutar.
@@ -544,6 +716,9 @@ Rapor yorumlarini tutar.
 | `ReportId` | `Guid` | Evet | FK -> `Reports.Id` |
 | `UserId` | `Guid` | Evet | FK -> `AspNetUsers.Id` |
 | `Content` | `string(1000)` | Evet | Yorum metni |
+
+Indexler:
+- `ReportId + CreatedAt` (yorum listesi bu sirayla sayfalanir)
 
 ## Oneri Modulu
 
@@ -567,6 +742,7 @@ Iliskiler:
 
 Indexler:
 - `Status`
+- `VoteScore + CreatedAt` (oneri listesi once oy puanina, sonra tarihe gore sayfalanir)
 
 ### Votes
 
@@ -595,6 +771,9 @@ Oneri yorumlarini tutar.
 | `SuggestionId` | `Guid` | Evet | FK -> `Suggestions.Id` |
 | `UserId` | `Guid` | Evet | FK -> `AspNetUsers.Id` |
 | `Content` | `string(1000)` | Evet | Yorum metni |
+
+Indexler:
+- `SuggestionId + CreatedAt` (yorum listesi bu sirayla sayfalanir)
 
 ## Topluluk Gonderileri
 
@@ -672,6 +851,9 @@ Topluluk gonderisi yorumlarini tutar.
 | `UserId` | `Guid` | Evet | FK -> `AspNetUsers.Id` |
 | `Content` | `string(1000)` | Evet | Yorum metni |
 
+Indexler:
+- `CommunityPostId + CreatedAt` (yorum listesi bu sirayla sayfalanir)
+
 ## Duyuru Modulu
 
 ### Announcements
@@ -699,15 +881,22 @@ Iliskiler:
 
 Check constraint:
 - `CK_Announcements_ExpiresAt_After_CreatedAt`: `ExpiresAt` null olabilir; doluysa `CreatedAt` degerinden sonra olmalidir.
+- `CK_Announcements_Scope_Location`: scope degerine gore yalnizca ilgili lokasyon kolonu dolu olabilir.
+
+Scope kurallari:
+- `Scope = All`: tum lokasyon kolonlari null.
+- `Scope = Province`: yalnizca `ProvinceId` dolu.
+- `Scope = District`: yalnizca `DistrictId` dolu.
+- `Scope = Neighborhood`: yalnizca `NeighborhoodId` dolu.
 
 Indexler:
-- `NeighborhoodId + IsActive`
+- `Scope + ProvinceId + IsActive`
+- `Scope + DistrictId + IsActive`
+- `Scope + NeighborhoodId + IsActive`
 - `ExpiresAt`
 
 Not:
-- `AnnouncementConfiguration` icinde `User` ve `Neighborhood` iliskileri explicit tanimlanmistir.
-- `Province` ve `District` navigation/property ciftleri entity uzerinde vardir; EF Core bunlari convention ile foreign key olarak algilar.
-- Kodda su an `CommunityPost` icin oldugu gibi announcement scope-lokasyon check constraint'i yoktur. Gerekirse `Scope = All/Province/District/Neighborhood` icin tekil lokasyon kurali ayrica eklenebilir.
+- `User`, `Province`, `District` ve `Neighborhood` iliskileri configuration icinde explicit tanimlanmistir.
 
 ## Bildirim Modulu
 
@@ -730,13 +919,35 @@ Check constraint:
 
 Indexler:
 - `UserId + IsRead`
+- `UserId + CreatedAt` (bildirim listesi bu sirayla sayfalanir)
+
+## Audit
+
+### AuditLogs
+
+Kurum, yerel birim, kategori eslemesi, Official erisimi ve rapor atama
+degisikliklerinin onceki/yeni degerlerini JSON olarak tutar.
+
+| Alan | Tip | Zorunlu | Aciklama |
+| --- | --- | --- | --- |
+| `Id` | `Guid` | Evet | PK |
+| `ActorUserId` | `Guid?` | Hayir | Islemi yapan oturum kullanicisi |
+| `Action` | `string(20)` | Evet | `Added`, `Modified`, `Deleted` |
+| `EntityType` | `string(100)` | Evet | Degisen entity tipi |
+| `EntityId` | `string(100)` | Evet | Tekil veya bilesik anahtar |
+| `OldValues` | `jsonb?` | Hayir | Degisen alanlarin onceki degerleri |
+| `NewValues` | `jsonb?` | Hayir | Degisen alanlarin yeni degerleri |
+
+Parola hash'i, security stamp ve token alanlari audit verisine dahil edilmez.
 
 ## Enumlar
 
 | Enum | Degerler |
 | --- | --- |
 | `UserRole` | `Citizen = 1`, `Official = 2`, `Admin = 3` |
-| `ReportStatus` | `Pending = 1`, `AI_Review = 2`, `Confirmed = 3`, `InProgress = 4`, `Resolved = 5`, `Rejected = 6` |
+| `OfficialJurisdictionLevel` | `Province = 1`, `District = 2`, `Neighborhood = 3` |
+| `OrganizationJurisdictionLevel` | `Province = 1`, `District = 2`, `Neighborhood = 3` |
+| `ReportStatus` | `PendingReview = 1`, `AiReview = 2`, `Confirmed = 3`, `InProgress = 4`, `Resolved = 5`, `Rejected = 6` |
 | `ReportPriority` | `Low = 1`, `Medium = 2`, `High = 3`, `Urgent = 4` |
 | `SuggestionStatus` | `Active = 1`, `Reviewing = 2`, `Implementation = 3`, `Closed = 4` |
 | `PostType` | `HelpRequested = 1`, `BorrowTool = 2`, `LostAndFound = 3` |
@@ -746,11 +957,16 @@ Indexler:
 | `MediaType` | `Image = 1`, `Video = 2` |
 | `NotificationRelatedEntityType` | `Report = 1`, `Suggestion = 2`, `CommunityPost = 3`, `Announcement = 4` |
 
+Rapor durumlarinin is kurallari ve izin verilen gecisleri icin
+[ReportStatusWorkflow.md](ReportStatusWorkflow.md) dokumanina bakiniz.
+
 ## Tasarim Kararlari
 
 - Kullanici lokasyonu dogrudan il/ilce kolonlariyla degil, `NeighborhoodId` uzerinden cozulur. Ilce ve il bilgisi mahalle hiyerarsisinden bulunur.
 - Raporlar mahalle bazlidir ve konum icin PostGIS `Point` kullanir.
+- `ContentHash`, normalize edilmis baslik ve aciklamadan uretilen deterministik SHA-256 degeridir. Yalnizca birebir ayni icerigi hizli tespit eder.
+- Anlamsal benzerlik sonuclari `ReportSimilarityMatches` tablosunda skor ve gerekceyle saklanir; `ContentHash` bu tablonun yerine gecmez.
 - Topluluk gonderileri scope bazlidir. Bir community post ayni anda yalnizca il, ilce veya mahalle kapsamlarindan birine sahip olabilir.
-- Duyurular da scope alanina sahiptir; ancak mevcut config'te community post'taki gibi scope-lokasyon check constraint'i henuz yoktur.
+- Duyurular scope bazlidir ve scope-lokasyon tutarliligi database constraint ile korunur.
 - Onerilerde oy toplami `VoteScore` ile tutulur; tekil kullanici oyu unique index ile korunur.
 - Bildirimler polymorphic referansi `RelatedEntityId + RelatedEntityType` ikilisiyle temsil eder.

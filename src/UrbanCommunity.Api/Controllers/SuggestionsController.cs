@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using UrbanCommunity.Application.Common.Models;
 using UrbanCommunity.Application.Features.Suggestions.Commands.ChangeSuggestionStatus;
 using UrbanCommunity.Application.Features.Suggestions.Commands.CreateSuggestion;
 using UrbanCommunity.Application.Features.Suggestions.Commands.DeleteSuggestion;
@@ -9,6 +10,7 @@ using UrbanCommunity.Application.Features.Suggestions.Commands.UpdateSuggestion;
 using UrbanCommunity.Application.Features.Suggestions.Queries.GetSuggestionById;
 using UrbanCommunity.Application.Features.Suggestions.Queries.GetAllowedSuggestionStatusTransitions;
 using UrbanCommunity.Application.Features.Suggestions.Queries.GetSuggestions;
+using UrbanCommunity.Application.Features.Suggestions.Queries.GetSuggestionStats;
 using UrbanCommunity.Domain.Enums;
 
 namespace UrbanCommunity.Api.Controllers;
@@ -19,7 +21,9 @@ namespace UrbanCommunity.Api.Controllers;
 public class SuggestionsController(IMediator mediator) : ApiController
 {
     [HttpGet]
+    [ProducesResponseType(typeof(Result<PagedResult<GetSuggestionsQueryResponse>>), 200)]
     public async Task<IActionResult> GetAll(
+        [FromQuery] PaginationRequest pagination,
         [FromQuery] SuggestionStatus? status,
         [FromQuery] Guid? userId,
         [FromQuery] Guid? neighborhoodId,
@@ -28,8 +32,21 @@ public class SuggestionsController(IMediator mediator) : ApiController
         CancellationToken cancellationToken)
     {
         var result = await mediator.Send(
-            new GetSuggestionsQuery(status, userId, neighborhoodId, districtId, provinceId, GetCurrentUserId()),
+            new GetSuggestionsQuery(status, userId, neighborhoodId, districtId, provinceId, GetCurrentUserId())
+            {
+                PageIndex = pagination.PageIndex,
+                PageSize = pagination.PageSize
+            },
             cancellationToken);
+        return Ok(result);
+    }
+
+    /// <summary>Returns suggestion counts grouped by status.</summary>
+    [HttpGet("stats")]
+    [ProducesResponseType(typeof(Result<GetSuggestionStatsQueryResponse>), 200)]
+    public async Task<IActionResult> GetStats(CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new GetSuggestionStatsQuery(), cancellationToken);
         return Ok(result);
     }
 
