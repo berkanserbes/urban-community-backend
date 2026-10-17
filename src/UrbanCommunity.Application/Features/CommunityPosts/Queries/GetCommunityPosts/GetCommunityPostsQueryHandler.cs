@@ -1,6 +1,8 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using UrbanCommunity.Application.Common.Extensions;
 using UrbanCommunity.Application.Common.Models;
+using UrbanCommunity.Application.Common.Projections;
 using UrbanCommunity.Application.Features.CommunityPosts;
 using UrbanCommunity.Application.Interfaces;
 using UrbanCommunity.Domain.Enums;
@@ -8,13 +10,12 @@ using UrbanCommunity.Domain.Enums;
 namespace UrbanCommunity.Application.Features.CommunityPosts.Queries.GetCommunityPosts;
 
 public sealed class GetCommunityPostsQueryHandler(IApplicationDbContext context)
-    : IRequestHandler<GetCommunityPostsQuery, Result<IReadOnlyList<GetCommunityPostsQueryResponse>>>
+    : IRequestHandler<GetCommunityPostsQuery, Result<PagedResult<GetCommunityPostsQueryResponse>>>
 {
-    public async Task<Result<IReadOnlyList<GetCommunityPostsQueryResponse>>> Handle(GetCommunityPostsQuery request, CancellationToken cancellationToken)
+    public async Task<Result<PagedResult<GetCommunityPostsQueryResponse>>> Handle(GetCommunityPostsQuery request, CancellationToken cancellationToken)
     {
         var query = context.CommunityPosts
             .AsNoTracking()
-            .Include(p => p.User)
             .AsQueryable();
 
         if (!request.IsAdmin)
@@ -46,6 +47,7 @@ public sealed class GetCommunityPostsQueryHandler(IApplicationDbContext context)
 
         var posts = await query
             .OrderByDescending(p => p.CreatedAt)
+            .ThenBy(p => p.Id)
             .Select(p => new GetCommunityPostsQueryResponse(
                 p.Id,
                 p.Type,
@@ -53,7 +55,7 @@ public sealed class GetCommunityPostsQueryHandler(IApplicationDbContext context)
                 p.Content,
                 p.Status,
                 p.UserId,
-                $"{p.User.FirstName} {p.User.LastName}",
+                UserProjections.FullName.Invoke(p.User),
                 p.Scope,
                 p.ProvinceId,
                 p.Province != null ? p.Province.Name : null,
@@ -65,8 +67,9 @@ public sealed class GetCommunityPostsQueryHandler(IApplicationDbContext context)
                 p.Media.Count,
                 p.CreatedAt,
                 p.UpdatedAt))
-            .ToListAsync(cancellationToken);
+            .Expand()
+            .ToPagedResultAsync(request.PageIndex, request.PageSize, cancellationToken);
 
-        return Result<IReadOnlyList<GetCommunityPostsQueryResponse>>.Success(posts);
+        return Result<PagedResult<GetCommunityPostsQueryResponse>>.Success(posts);
     }
 }

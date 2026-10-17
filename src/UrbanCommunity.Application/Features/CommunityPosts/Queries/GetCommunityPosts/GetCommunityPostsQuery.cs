@@ -13,4 +13,4 @@ public sealed record GetCommunityPostsQuery(
     Guid? NeighborhoodId = null,
     CommunityPostStatus? Status = null,
     PostType? Type = null,
-    Guid? UserId = null) : IRequest<Result<IReadOnlyList<GetCommunityPostsQueryResponse>>>;
+    Guid? UserId = null) : PaginationRequest, IRequest<Result<PagedResult<GetCommunityPostsQueryResponse>>>;
