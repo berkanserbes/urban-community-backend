@@ -10,6 +10,13 @@ updates:
       cronjob: "0 9 1 */2 *" # 09:00 on the 1st of every second month
       timezone: Europe/Istanbul
     open-pull-requests-limit: 5
+    ignore:
+      # MassTransit v9 moved to a commercial license; v8 stays open source (Apache 2.0).
+      - dependency-name: "MassTransit*"
+        update-types: ["version-update:semver-major"]
+      # Microsoft.AspNetCore.OpenApi 10 targets Microsoft.OpenApi 2.x.
+      - dependency-name: "Microsoft.OpenApi"
+        update-types: ["version-update:semver-major"]
     groups:
       nuget-minor-and-patch:
         update-types: [minor, patch]
