@@ -1,7 +1,9 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using UrbanCommunity.Application.Common.Exceptions;
+using UrbanCommunity.Application.Common.Extensions;
 using UrbanCommunity.Application.Common.Models;
+using UrbanCommunity.Application.Common.Projections;
 using UrbanCommunity.Application.Features.CommunityPosts;
 using UrbanCommunity.Application.Interfaces;
 using CommunityPostEntity = UrbanCommunity.Domain.Entities.CommunityPost;
@@ -9,9 +11,9 @@ using CommunityPostEntity = UrbanCommunity.Domain.Entities.CommunityPost;
 namespace UrbanCommunity.Application.Features.Comments.Queries.CommunityPostComment.GetCommunityPostComments;
 
 public sealed class GetCommunityPostCommentsQueryHandler(IApplicationDbContext context)
-    : IRequestHandler<GetCommunityPostCommentsQuery, Result<IReadOnlyList<GetCommunityPostCommentsQueryResponse>>>
+    : IRequestHandler<GetCommunityPostCommentsQuery, Result<PagedResult<GetCommunityPostCommentsQueryResponse>>>
 {
-    public async Task<Result<IReadOnlyList<GetCommunityPostCommentsQueryResponse>>> Handle(GetCommunityPostCommentsQuery request, CancellationToken cancellationToken)
+    public async Task<Result<PagedResult<GetCommunityPostCommentsQueryResponse>>> Handle(GetCommunityPostCommentsQuery request, CancellationToken cancellationToken)
     {
         var post = await context.CommunityPosts
             .AsNoTracking()
@@ -31,20 +33,18 @@ public sealed class GetCommunityPostCommentsQueryHandler(IApplicationDbContext c
         var comments = await context.CommunityPostComments
             .AsNoTracking()
             .Where(comment => comment.CommunityPostId == request.CommunityPostId)
-            .Include(comment => comment.User)
             .OrderBy(comment => comment.CreatedAt)
-            .ToListAsync(cancellationToken);
-
-        IReadOnlyList<GetCommunityPostCommentsQueryResponse> result = comments
+            .ThenBy(comment => comment.Id)
             .Select(comment => new GetCommunityPostCommentsQueryResponse(
                 comment.Id,
                 comment.UserId,
-                comment.User.FullName,
+                UserProjections.FullName.Invoke(comment.User),
                 comment.Content,
                 comment.CreatedAt,
                 comment.UpdatedAt))
-            .ToList();
+            .Expand()
+            .ToPagedResultAsync(request.PageIndex, request.PageSize, cancellationToken);
 
-        return Result<IReadOnlyList<GetCommunityPostCommentsQueryResponse>>.Success(result);
+        return Result<PagedResult<GetCommunityPostCommentsQueryResponse>>.Success(comments);
     }
 }

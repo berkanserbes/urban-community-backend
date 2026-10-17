@@ -3,4 +3,4 @@ using UrbanCommunity.Application.Common.Models;
 
 namespace UrbanCommunity.Application.Features.Comments.Queries.ReportComment.GetReportComments;
 
-public sealed record GetReportCommentsQuery(Guid ReportId) : IRequest<Result<IReadOnlyList<GetReportCommentsQueryResponse>>>;
+public sealed record GetReportCommentsQuery(Guid ReportId) : PaginationRequest, IRequest<Result<PagedResult<GetReportCommentsQueryResponse>>>;
