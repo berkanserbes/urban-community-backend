@@ -1,4 +1,3 @@
-using System.Data;
 using MassTransit;
 using UrbanCommunity.Infrastructure.Consumers;
 using UrbanCommunity.Infrastructure.Persistence;
@@ -19,14 +18,14 @@ public static class MessagingExtensions
         // same transaction as the data and sent by a background delivery service after the
         // commit, so an unavailable broker can no longer lose them. On the consumer side the
         // inbox records every message id and skips redelivered messages.
+        //
+        // Keep the default RepeatableRead isolation. When two copies of a message race for the
+        // inbox row, the loser gets a serialization failure and is retried. With ReadCommitted
+        // it reads a stale inbox row instead and consumes the message a second time.
         bus.AddEntityFrameworkOutbox<ApplicationDbContext>(outbox =>
         {
             outbox.UsePostgres();
             outbox.UseBusOutbox();
-
-            // The inbox row lock already serializes each message. ReadCommitted avoids
-            // serialization failures when a request updates the same rows meanwhile.
-            outbox.IsolationLevel = IsolationLevel.ReadCommitted;
         });
 
         // Retry has to wrap the outbox so that every attempt runs in a new transaction.

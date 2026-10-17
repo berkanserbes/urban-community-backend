@@ -82,9 +82,10 @@ public sealed class TransactionalOutboxTests(PostgresFixture postgres) : IClassF
         var reportId = Guid.NewGuid();
         var duplicateId = NewId.NextGuid();
 
-        // The same message delivered twice (as after a broker redelivery), then a different one.
-        await harness.Bus.Publish(StatusChanged(reportId, owner.Id), context => context.MessageId = duplicateId);
-        await harness.Bus.Publish(StatusChanged(reportId, owner.Id), context => context.MessageId = duplicateId);
+        // The same message delivered twice at once (as after a broker redelivery), then a different
+        // one. The two copies race for the inbox row, which is the hard case.
+        await Task.WhenAll(Enumerable.Range(0, 2).Select(_ =>
+            harness.Bus.Publish(StatusChanged(reportId, owner.Id), context => context.MessageId = duplicateId)));
         await harness.Bus.Publish(StatusChanged(reportId, owner.Id), context => context.MessageId = NewId.NextGuid());
 
         Assert.Equal(2, await CountNotificationsAsync(owner.Id, reportId, expected: 2));
